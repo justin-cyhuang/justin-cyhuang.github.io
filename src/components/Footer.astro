@@ -1,0 +1,21 @@
+---
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <hr />
+  <p>
+    © {year} Justin Huang ·
+    <a href="https://github.com/justin-cyhuang/justin-cyhuang.github.io" target="_blank" rel="noopener">site source</a> ·
+    built with <a href="https://astro.build" target="_blank" rel="noopener">Astro</a> on a Raspberry Pi 4
+  </p>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: 3rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .site-footer a { font-size: inherit; }
+</style>

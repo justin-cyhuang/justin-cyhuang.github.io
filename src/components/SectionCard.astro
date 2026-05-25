@@ -1,0 +1,27 @@
+---
+interface Props {
+  title: string;
+  icon?: string;
+}
+const { title, icon } = Astro.props;
+---
+<div class="section-card">
+  <h3>{icon && <span class="icon">{icon}</span>} {title}</h3>
+  <div class="content">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .section-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 0.75rem 0;
+  }
+  .section-card h3 { margin: 0 0 0.5rem; }
+  .icon { margin-right: 0.35rem; }
+  .content :global(p:first-child) { margin-top: 0; }
+  .content :global(p:last-child) { margin-bottom: 0; }
+</style>

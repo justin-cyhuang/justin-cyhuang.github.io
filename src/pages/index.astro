@@ -1,0 +1,107 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SectionCard from '../components/SectionCard.astro';
+import RepoCard from '../components/RepoCard.astro';
+import SkillCounter from '../components/islands/SkillCounter.tsx';
+import { fetchRepos } from '../lib/github';
+
+const categorized = await fetchRepos();
+---
+<BaseLayout>
+
+  <section id="intro">
+    <h2>👋 Hi, I'm Justin</h2>
+    <p>
+      這裡是我的工作棚 — 我在一台 Raspberry Pi 4 上跑
+      <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noopener">Hermes Agent</a>
+      已經半年了，這頁是給自己跟好奇的人看的。
+    </p>
+    <p>
+      下面會放：(1) 我現在最常用的 daily workflow，(2) 我寫的 / 在玩的 repository，
+      (3) 一個小小的互動 demo，證明這站不是純靜態。
+    </p>
+  </section>
+
+  <section id="latest">
+    <h2>🍳 Latest Thing — Hermes on a Pi</h2>
+    <p>
+      我用一台 8GB RAM 的 Pi 4 當家用 agent server。Discord 當前端，
+      GitHub Copilot 當主要 LLM provider，Obsidian Vault 當長期記憶。
+    </p>
+    <p>
+      它每天早上 8 點推 10 則跨來源新聞（BBC / CNBC / NHK 交叉比對）+ 台中天氣到 Discord。
+      其他時間，它是我的程式碼跑腿、研究助手、跟 Pi 4 自己的看門狗。
+    </p>
+    <p>
+      想試？官網在
+      <a href="https://hermes-agent.nousresearch.com/" target="_blank" rel="noopener">hermes-agent.nousresearch.com</a>。
+    </p>
+  </section>
+
+  <section id="workflows">
+    <h2>🔁 Daily Workflows</h2>
+
+    <SectionCard title="跨來源新聞日報" icon="📰">
+      <p>
+        Cron 每天 08:00 拉 BBC World / CNBC / NHK 的 RSS，交叉比對主軸事件，
+        產出 10 則 bilingual headline + 台中天氣，
+        bot 直接 push 到 Discord、同時備份成 Markdown 進 Obsidian。
+      </p>
+    </SectionCard>
+
+    <SectionCard title="Pi 4 系統看門狗" icon="🩺">
+      <p>
+        記憶體 / 磁碟 / CPU 溫度三個 watchdog 每 5 分鐘跑一次，
+        無事靜音，超過閾值才丟 Discord alert。寫成 no-agent cron job，零 LLM 開銷。
+      </p>
+    </SectionCard>
+
+    <SectionCard title="/goal Loop" icon="🎯">
+      <p>
+        Hermes 內建的 goal-judge loop — 給一個目標、設 max_turns，
+        小模型（gpt-4o-mini）當裁判每輪判 done/continue/pause，
+        我把它當「自動跑 plan」的引擎用，這頁就是它跑出來的。
+      </p>
+    </SectionCard>
+
+    <SectionCard title="Obsidian Vault 整合" icon="📓">
+      <p>
+        台電電價、研究筆記、新聞日報通通往 Vault 倒，
+        Hermes 知道路徑、能搜尋、能 append，把 LLM context 跟長期知識縫起來。
+      </p>
+    </SectionCard>
+  </section>
+
+  <section id="projects">
+    <h2>📦 Projects & Repositories</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+      從 GitHub API build-time 抓的，每次重新部署會更新。
+    </p>
+    {categorized.map((cat) => (
+      <div class="repo-group">
+        <h3>{cat.category}</h3>
+        {cat.repos.map((r) => <RepoCard repo={r} />)}
+      </div>
+    ))}
+  </section>
+
+  <section id="demo">
+    <h2>🧪 Interactive Demo</h2>
+    <p>
+      下面這顆按鈕是 React 元件（Astro Island），用 <code>client:visible</code> 指令，
+      只在它滑進 viewport 才會 hydrate。純靜態站也能放動的東西。
+    </p>
+    <SkillCounter client:visible initial={0} />
+  </section>
+
+</BaseLayout>
+
+<style>
+  .repo-group { margin: 1rem 0 1.5rem; }
+  .repo-group h3 {
+    margin-bottom: 0.5rem;
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: 500;
+  }
+</style>
