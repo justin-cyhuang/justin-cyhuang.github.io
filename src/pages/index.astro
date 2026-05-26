@@ -26,11 +26,13 @@ const categorized = await fetchRepos();
     <h2>🍳 Latest Thing — Hermes on a Pi</h2>
     <p>
       我用一台 8GB RAM 的 Pi 4 當家用 agent server。Discord 當前端，
-      GitHub Copilot 當主要 LLM provider，Obsidian Vault 當長期記憶。
+      現在主模型已設為 gpt-5-mini（互動優先），delegation 執行模型為 GitHub Copilot / gpt-5.4。
+      Obsidian Vault 仍作為長期記憶來源。
     </p>
     <p>
-      它每天早上 8 點推 10 則跨來源新聞（BBC / CNBC / NHK 交叉比對）+ 台中天氣到 Discord。
-      其他時間，它是我的程式碼跑腿、研究助手、跟 Pi 4 自己的看門狗。
+      最近更新：daily-morning-briefing 和 weekly-portfolio-report 的 cron jobs 已指定 provider/model override（copilot/gpt-5.4）；
+      Gateway 已重啟並驗證連線正常，系統看門狗與排程維持不變。
+      它仍每天早上 08:00 推 10 則跨來源新聞（BBC / CNBC / NHK）+ 台中天氣到 Discord。
     </p>
     <p>
       想試？官網在
