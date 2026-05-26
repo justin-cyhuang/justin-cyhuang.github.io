@@ -1,5 +1,6 @@
-// Pillow Studio MVP
-// Three.js via CDN ESM. 45x45 cotton pillow, upload image, rotate, lights from upper-right-back 45°.
+// Pillow Studio
+// Three.js via CDN ESM. 45×45 抱枕：載入 Blender GLB，套用三種布料材質，
+// 支援上傳圖片、改底色、切換背景、自動旋轉。
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -31,128 +32,44 @@ controls.maxDistance = 4.0;
 controls.target.set(0, 0, 0);
 
 // ---- Lights ----
-// Ambient base
-const ambient = new THREE.AmbientLight(0xffffff, 0.35);
-scene.add(ambient);
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+scene.add(new THREE.HemisphereLight(0xffffff, 0xc8c0b0, 0.45));
 
-// Hemisphere for soft sky/ground bounce
-const hemi = new THREE.HemisphereLight(0xffffff, 0xc8c0b0, 0.45);
-scene.add(hemi);
-
-// KEY light: upper-right-back 45° from viewer's perspective
-// Viewer looks down -Z; "right-back" means +X / +Z (behind pillow from viewer), "upper" means +Y.
-// Place at 45° angles.
+// KEY light: 從觀眾右上後方 45°
 const keyLight = new THREE.DirectionalLight(0xfff2e1, 1.6);
-// Viewer at +Z looking toward origin (-Z). "Viewer's upper-right-back" =
-// right (+X), up (+Y), behind viewer (+Z, further from pillow than camera).
 keyLight.position.set(2.5, 3.0, 3.5);
-keyLight.castShadow = false;
 scene.add(keyLight);
 
-// Fill light from viewer-front-left, dimmer, cool
+// Fill：觀眾正前左方，較暗、偏冷
 const fill = new THREE.DirectionalLight(0xcfd8ff, 0.45);
 fill.position.set(-2.0, 0.8, 2.0);
 scene.add(fill);
 
-// Rim light to separate pillow from background
+// Rim：分離抱枕與背景
 const rim = new THREE.DirectionalLight(0xffe6c8, 0.25);
 rim.position.set(0, -1.0, -3.0);
 scene.add(rim);
 
-// (Ground shadow catcher removed — user wants no background shadow)
-
-// ---- Pillow geometry: puffy 45×45 cm cube with inflated faces ----
-// Scene unit: 1 = 1 meter. 45cm = 0.45.
-const PILLOW_W = 0.45;
-const PILLOW_H = 0.45;
-const PILLOW_D = 0.30; // depth — 1:3 thickness:width per linen pillow reference
-const SEGS = 48;       // per side — enough for smooth bulge
-
-function makePillowGeometry(w, h, d, segs) {
-  // TRUE pillow topology: 2 cloth panels sewn together at the perimeter.
-  // Result is a LENS shape with only 4 corners (perimeter sits on z=0 plane).
-  //
-  //   - At center (nx=0, ny=0): full thickness ±d/2
-  //   - At edge (|nx|=1 OR |ny|=1): z=0 — front & back panels meet at the seam
-  //   - At corner (|nx|=|ny|=1): z=0, 4 corners only (not 8)
-  //
-  // The XY silhouette stays a square (45x45 perimeter), with mild "ears" at corners
-  // because the bulk of stuffing pushes XY outward where the panels meet.
-  const geo = new THREE.BoxGeometry(w, h, d, segs, segs, Math.max(2, segs / 8));
-  const pos = geo.attributes.position;
-  const v = new THREE.Vector3();
-
-  const halfW = w / 2;
-  const halfH = h / 2;
-  const halfD = d / 2;
-
-  // v12 — linen-pillow reference (平頂中央 + 軟邊 + 4 個 dog-ear 尖角):
-  //   Z: plateau (flat center, soft falloff at edge). Front/back collapse to 0 at perimeter → 4 corners.
-  //   XY: large dog-ear push at the 4 corners (~10% of side length), creates concave edges.
-  const PLATEAU_FLAT  = 0.55;   // radius (0..1) of flat-top region in normalized space
-  const EDGE_SOFT     = 0.95;   // soft-fall edge (1.0 = exactly at perimeter)
-  const CORNER_EARS   = 0.045;  // dog-ear XY length (~10% of half-side 0.225m)
-  const EARS_POW      = 1.8;    // lower = ear extends further inward from corner
-
-  const smoothstep = (a, b, x) => {
-    const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-    return t * t * (3 - 2 * t);
-  };
-
-  for (let i = 0; i < pos.count; i++) {
-    v.fromBufferAttribute(pos, i);
-    const nx = v.x / halfW;
-    const ny = v.y / halfH;
-    const nz = v.z / halfD;
-    const ax = Math.abs(nx);
-    const ay = Math.abs(ny);
-
-    // Radial distance from center using L∞ (chebyshev) on squared coords for soft squircle feel.
-    const r = Math.max(ax, ay);
-    // Plateau profile: 1.0 inside PLATEAU_FLAT, smoothly to 0 by EDGE_SOFT.
-    const profile = 1 - smoothstep(PLATEAU_FLAT, EDGE_SOFT, r);
-    v.z = Math.sign(nz || 1) * halfD * profile;
-
-    // Dog-ear XY push at the 4 corners.
-    const earWeight = Math.pow(ax, EARS_POW) * Math.pow(ay, EARS_POW);
-    if (earWeight > 0.001) {
-      const dirLen = Math.hypot(nx, ny) || 1;
-      v.x += (nx / dirLen) * CORNER_EARS * earWeight;
-      v.y += (ny / dirLen) * CORNER_EARS * earWeight;
-    }
-
-    pos.setXYZ(i, v.x, v.y, v.z);
-  }
-  geo.computeVertexNormals();
-  return geo;
-}
-
-const pillowGeo = makePillowGeometry(PILLOW_W, PILLOW_H, PILLOW_D, SEGS);
-
-// ---- Procedural fabric weave: color + normal + roughness maps (parameterised by fabric profile) ----
-function makeCottonTextures(baseColorHex, fabric = FABRICS.cotton) {
+// ---- Procedural fabric textures (color + normal + roughness)，由布料 profile 驅動 ----
+function makeFabricTextures(baseColorHex, fabric) {
   const size = 512;
-  const period = fabric.period;
-  const repeat = fabric.repeat;
+  const { period, repeat, weaveAlpha, noiseAmp, normalStrength } = fabric;
 
-  // ---- Color (albedo) map ----
+  // Color (albedo)
   const cc = document.createElement('canvas');
   cc.width = cc.height = size;
   const ctx = cc.getContext('2d');
   ctx.fillStyle = baseColorHex;
   ctx.fillRect(0, 0, size, size);
-  // Fine noise variation
   const img = ctx.getImageData(0, 0, size, size);
-  const amp = fabric.noiseAmp;
   for (let i = 0; i < img.data.length; i += 4) {
-    const n = (Math.random() - 0.5) * amp;
+    const n = (Math.random() - 0.5) * noiseAmp;
     img.data[i]     = Math.max(0, Math.min(255, img.data[i]     + n));
     img.data[i + 1] = Math.max(0, Math.min(255, img.data[i + 1] + n));
     img.data[i + 2] = Math.max(0, Math.min(255, img.data[i + 2] + n));
   }
   ctx.putImageData(img, 0, 0);
-  // Subtle weave lines — both directions, low alpha
-  ctx.globalAlpha = fabric.weaveAlpha;
+  ctx.globalAlpha = weaveAlpha;
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 1;
   for (let y = 0; y < size; y += 3) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke(); }
@@ -164,29 +81,24 @@ function makeCottonTextures(baseColorHex, fabric = FABRICS.cotton) {
   colorTex.repeat.set(repeat, repeat);
   colorTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-  // ---- Normal map: simulated woven fabric (over/under weave bumps) ----
+  // Normal map：模擬經緯交織
   const nc = document.createElement('canvas');
   nc.width = nc.height = size;
   const nctx = nc.getContext('2d');
   const nimg = nctx.createImageData(size, size);
-  const nStrength = fabric.normalStrength;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      // Plain weave pattern: warps and wefts alternate above/below
       const cellX = Math.floor(x / period);
       const cellY = Math.floor(y / period);
       const isWarp = (cellX + cellY) % 2 === 0;
-      // Within each cell, height varies sinusoidally
       const lx = ((x % period) / period) * Math.PI;
       const ly = ((y % period) / period) * Math.PI;
       const h = isWarp ? Math.sin(lx) * 0.7 : Math.sin(ly) * 0.7;
-      // Add fine fiber noise
       const noise = (Math.random() - 0.5) * 0.15;
       const height = h + noise;
-      // Derive normal (approx): blue=up, red/green = slope
       const i = (y * size + x) * 4;
-      nimg.data[i]     = 128 + height * nStrength;
-      nimg.data[i + 1] = 128 + (isWarp ? Math.cos(lx) : Math.cos(ly)) * nStrength * 0.83;
+      nimg.data[i]     = 128 + height * normalStrength;
+      nimg.data[i + 1] = 128 + (isWarp ? Math.cos(lx) : Math.cos(ly)) * normalStrength * 0.83;
       nimg.data[i + 2] = 220;
       nimg.data[i + 3] = 255;
     }
@@ -197,7 +109,7 @@ function makeCottonTextures(baseColorHex, fabric = FABRICS.cotton) {
   normalTex.repeat.set(repeat, repeat);
   normalTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-  // ---- Roughness map: weave threads slightly less rough, gaps more rough ----
+  // Roughness map
   const rc = document.createElement('canvas');
   rc.width = rc.height = size;
   const rctx = rc.getContext('2d');
@@ -224,28 +136,21 @@ function makeCottonTextures(baseColorHex, fabric = FABRICS.cotton) {
   return { colorTex, normalTex, roughTex };
 }
 
-// Image-on-fabric texture: paint user image centered on a fabric-tinted square.
+// ---- Image-on-fabric：使用者圖片 cover 鋪滿，邊緣出血以利包覆側面 ----
 function makeImageOnFabricTexture(image, baseColorHex) {
   const size = 1024;
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const ctx = c.getContext('2d');
-
-  // Background fabric color
   ctx.fillStyle = baseColorHex;
   ctx.fillRect(0, 0, size, size);
-
-  // Fit image EDGE-TO-EDGE with bleed (matches "各邊出血" reference): image fills
-  // the whole canvas (cover, not contain), and the side faces sample the image edge
-  // so the print wraps around the cushion.
   const iw = image.naturalWidth || image.width;
   const ih = image.naturalHeight || image.height;
-  const scale = Math.max(size / iw, size / ih); // COVER
+  const scale = Math.max(size / iw, size / ih);
   const dw = iw * scale;
   const dh = ih * scale;
   ctx.drawImage(image, (size - dw) / 2, (size - dh) / 2, dw, dh);
-
-  // Add subtle weave noise overlay on top so the image looks "printed on fabric"
+  // 微織紋雜訊：讓圖看起來是「印在布上」
   const overlay = ctx.getImageData(0, 0, size, size);
   for (let i = 0; i < overlay.data.length; i += 4) {
     const n = (Math.random() - 0.5) * 10;
@@ -254,81 +159,67 @@ function makeImageOnFabricTexture(image, baseColorHex) {
     overlay.data[i + 2] = Math.max(0, Math.min(255, overlay.data[i + 2] + n));
   }
   ctx.putImageData(overlay, 0, 0);
-
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
   return tex;
 }
 
-// ---- Material assembly ----
-// BoxGeometry materials order: [+X, -X, +Y, -Y, +Z, -Z]
-// Visually: +Z = front (toward viewer), -Z = back, +X = right side, -X = left side, +Y = top, -Y = bottom.
-// ---- Fabric profiles (material physical properties + texture params) ----
+// ---- Fabric profiles ----
 const FABRICS = {
   cotton: {
     label: '棉布 Cotton',
-    period: 8,
-    repeat: 8,
-    weaveAlpha: 0.06,
-    noiseAmp: 22,
-    normalStrength: 60,
-    normalScale: 0.8,
-    roughness: 0.95,
-    sheen: 0.7,
-    sheenColor: 0xfff5e8,
-    sheenRoughness: 0.45,
-    printedRoughness: 0.88,
-    printedSheen: 0.55,
-    tintShift: 0,           // 0..1 nudge toward warm grey
+    period: 8, repeat: 8, weaveAlpha: 0.06, noiseAmp: 22,
+    normalStrength: 60, normalScale: 0.8,
+    roughness: 0.95, sheen: 0.7, sheenColor: 0xfff5e8, sheenRoughness: 0.45,
+    printedRoughness: 0.88, printedSheen: 0.55,
   },
   linen: {
     label: '麻 Linen',
-    period: 14,             // coarser weave
-    repeat: 6,
-    weaveAlpha: 0.13,       // more visible threads
-    noiseAmp: 38,           // chunkier fibre noise
-    normalStrength: 95,     // deeper weave bumps
-    normalScale: 1.15,
-    roughness: 1.0,         // very matte
-    sheen: 0.15,            // almost no sheen
-    sheenColor: 0xf3ede0,
-    sheenRoughness: 0.85,
-    printedRoughness: 0.96,
-    printedSheen: 0.10,
-    tintShift: 0.04,        // slight warm desat
+    period: 14, repeat: 6, weaveAlpha: 0.13, noiseAmp: 38,
+    normalStrength: 95, normalScale: 1.15,
+    roughness: 1.0, sheen: 0.15, sheenColor: 0xf3ede0, sheenRoughness: 0.85,
+    printedRoughness: 0.96, printedSheen: 0.10,
   },
   velvet: {
     label: '絲絨 Velvet',
-    period: 3,              // very fine fuzz
-    repeat: 12,
-    weaveAlpha: 0.02,       // hide weave lines
-    noiseAmp: 14,           // soft pile noise
-    normalStrength: 25,     // subtle surface
-    normalScale: 0.35,
-    roughness: 0.55,        // low; sheen dominates
-    sheen: 1.0,
-    sheenColor: 0xffeed8,
-    sheenRoughness: 0.18,   // sharp velvet highlight
-    printedRoughness: 0.65,
-    printedSheen: 0.9,
-    tintShift: -0.06,       // slight deepening
+    period: 3, repeat: 12, weaveAlpha: 0.02, noiseAmp: 14,
+    normalStrength: 25, normalScale: 0.35,
+    roughness: 0.55, sheen: 1.0, sheenColor: 0xffeed8, sheenRoughness: 0.18,
+    printedRoughness: 0.65, printedSheen: 0.9,
   },
 };
 
 const state = {
   baseColor: '#e8dccb',
   fabric: 'cotton',
-  face: 'front', // 'front' | 'back' | 'both'
-  image: null,   // HTMLImageElement
+  face: 'front', // 保留 state 以便 UI 不報錯；GLB 為單材質，整顆抱枕共用
+  image: null,
   bg: 'solid',
   autoRotate: false,
 };
 
-function buildMaterials() {
+// ---- 建構 GLB 單材質（整顆抱枕共用一個 material）----
+function buildMaterial() {
   const fabric = FABRICS[state.fabric] || FABRICS.cotton;
-  const { colorTex, normalTex, roughTex } = makeCottonTextures(state.baseColor, fabric);
-  const baseMat = new THREE.MeshPhysicalMaterial({
+  const { colorTex, normalTex, roughTex } = makeFabricTextures(state.baseColor, fabric);
+
+  if (state.image) {
+    const imgTex = makeImageOnFabricTexture(state.image, state.baseColor);
+    return new THREE.MeshPhysicalMaterial({
+      map: imgTex,
+      normalMap: normalTex,
+      normalScale: new THREE.Vector2(fabric.normalScale, fabric.normalScale),
+      roughnessMap: roughTex,
+      roughness: fabric.printedRoughness,
+      metalness: 0.0,
+      sheen: fabric.printedSheen,
+      sheenColor: new THREE.Color(fabric.sheenColor),
+      sheenRoughness: fabric.sheenRoughness,
+    });
+  }
+
+  return new THREE.MeshPhysicalMaterial({
     map: colorTex,
     normalMap: normalTex,
     normalScale: new THREE.Vector2(fabric.normalScale, fabric.normalScale),
@@ -338,126 +229,50 @@ function buildMaterials() {
     sheen: fabric.sheen,
     sheenColor: new THREE.Color(fabric.sheenColor),
     sheenRoughness: fabric.sheenRoughness,
-    clearcoat: 0.0,
   });
-
-  // For the printed image face, the user's image multiplies on top of fabric.
-  // We still want weave normals/roughness, but the color map becomes the printed image.
-  function makePrintedMat(imgTex) {
-    const m = baseMat.clone();
-    m.map = imgTex;
-    m.normalMap = normalTex;       // share weave bumps
-    m.roughnessMap = roughTex;
-    // Printed surface uses fabric-specific printed values
-    m.roughness = fabric.printedRoughness;
-    m.sheen = fabric.printedSheen;
-    return m;
-  }
-
-  let frontMat, backMat;
-  if (state.image) {
-    const imgTex = makeImageOnFabricTexture(state.image, state.baseColor);
-    if (state.face === 'front')      { frontMat = makePrintedMat(imgTex); backMat = baseMat.clone(); }
-    else if (state.face === 'back')  { frontMat = baseMat.clone();        backMat = makePrintedMat(imgTex); }
-    else                              { frontMat = makePrintedMat(imgTex); backMat = makePrintedMat(imgTex); }
-  } else {
-    frontMat = baseMat.clone();
-    backMat = baseMat.clone();
-  }
-
-  // When user supplied an image, wrap it onto the side faces too (各邊出血 bleed).
-  let sideMat;
-  if (state.image) {
-    const imgTex = makeImageOnFabricTexture(state.image, state.baseColor);
-    sideMat = makePrintedMat(imgTex);
-  } else {
-    sideMat = baseMat;
-  }
-
-  // Material order: [+X, -X, +Y, -Y, +Z, -Z]  (kept for legacy fallback geometry; GLB mesh uses single material)
-  return [
-    sideMat.clone(),  // +X right side
-    sideMat.clone(),  // -X left side
-    sideMat.clone(),  // +Y top
-    sideMat.clone(),  // -Y bottom
-    frontMat,         // +Z front
-    backMat,          // -Z back
-  ];
-}
-
-// Single-material builder for the GLB mesh (uses front face material — image is wrapped over whole pillow).
-function buildSingleMaterial() {
-  const mats = buildMaterials();
-  // index 4 = +Z front in BoxGeometry order — this is the printed face when an image is set
-  return mats[4];
 }
 
 // ---- Load real pillow geometry from Blender export ----
-let pillow = new THREE.Mesh(
+const pillow = new THREE.Mesh(
   new THREE.BoxGeometry(0.001, 0.001, 0.001),  // placeholder until GLB loads
-  buildSingleMaterial()
+  buildMaterial()
 );
 pillow.visible = false;
-pillow.castShadow = false;
-pillow.receiveShadow = false;
 
 const gltfLoader = new GLTFLoader();
 gltfLoader.load(
   '/pillow.glb',
   (gltf) => {
-    // Find the mesh inside the loaded scene
     let glbMesh = null;
-    gltf.scene.traverse((obj) => {
-      if (obj.isMesh && !glbMesh) glbMesh = obj;
-    });
+    gltf.scene.traverse((obj) => { if (obj.isMesh && !glbMesh) glbMesh = obj; });
     if (!glbMesh) {
-      console.error('No mesh found in pillow.glb');
-      pillow.visible = true;
+      hud.textContent = 'pillow.glb 內找不到 mesh';
       return;
     }
 
-    // Replace placeholder geometry with real GLB geometry
+    // 用 GLB 幾何取代 placeholder
     const oldGeo = pillow.geometry;
     pillow.geometry = glbMesh.geometry.clone();
     oldGeo.dispose();
-
-    // Ensure normals + tangents for proper lighting
     if (!pillow.geometry.attributes.normal) pillow.geometry.computeVertexNormals();
 
-    // Center & scale to match the original procedural footprint (~0.45m wide)
+    // 置中、對齊到觀眾視角、縮放到 0.45m 寬
     pillow.geometry.computeBoundingBox();
-    const bb = pillow.geometry.boundingBox;
-    const size = new THREE.Vector3();
-    bb.getSize(size);
     const center = new THREE.Vector3();
-    bb.getCenter(center);
-    // Translate to origin
+    pillow.geometry.boundingBox.getCenter(center);
     pillow.geometry.translate(-center.x, -center.y, -center.z);
 
-    // Recompute bbox after centering
-    pillow.geometry.computeBoundingBox();
-    const bb2 = pillow.geometry.boundingBox;
-    const size2 = new THREE.Vector3();
-    bb2.getSize(size2);
-
-    // GLB layout in Three.js space: X≈1.97, Y≈0.91 (thickness), Z≈1.97.
-    // We want the two large square faces to face ±Z (toward the camera),
-    // so rotate -90° around X to swap Y and Z.
+    // GLB 大面在 ±Y → 旋轉 -90° 讓兩個正方形面朝 ±Z（鏡頭方向）
     pillow.geometry.rotateX(-Math.PI / 2);
 
-    // Recompute bbox after rotation
     pillow.geometry.computeBoundingBox();
-    const bb3 = pillow.geometry.boundingBox;
-    const size3 = new THREE.Vector3();
-    bb3.getSize(size3);
-
-    // Scale so the wider of X/Y = 0.45m (pillow face dimension)
-    const faceDim = Math.max(size3.x, size3.y);
-    const scale = 0.45 / faceDim;
+    const size = new THREE.Vector3();
+    pillow.geometry.boundingBox.getSize(size);
+    const scale = 0.45 / Math.max(size.x, size.y);
     pillow.geometry.scale(scale, scale, scale);
 
     pillow.visible = true;
-    hud.textContent = `ready · GLB ${glbMesh.geometry.attributes.position.count.toLocaleString()} verts · drag to rotate`;
+    hud.textContent = `ready · GLB ${pillow.geometry.attributes.position.count.toLocaleString()} verts · drag to rotate`;
     window.__pillowReady = true;
     window.__pillowGLBLoaded = true;
   },
@@ -469,119 +284,23 @@ gltfLoader.load(
   },
   (err) => {
     console.error('Failed to load pillow.glb', err);
-    hud.textContent = 'failed to load pillow.glb · using fallback';
-    // Fallback: use old procedural geometry
-    const oldGeo = pillow.geometry;
-    pillow.geometry = pillowGeo;
-    oldGeo.dispose();
-    pillow.material = buildMaterials();
-    pillow.visible = true;
-    window.__pillowReady = true;
+    hud.textContent = 'failed to load pillow.glb';
   }
 );
 
-// ---- Seam stitching: dashed line along the front-face perimeter, following the puffy surface ----
-function makeSeams() {
-  const group = new THREE.Group();
-  const stitchMat = new THREE.MeshStandardMaterial({
-    color: 0xfff3d8,
-    roughness: 0.6,
-    metalness: 0.0,
-  });
-
-  const inset = 0.018;
-  const w2 = PILLOW_W / 2 - inset;
-  const h2 = PILLOW_H / 2 - inset;
-  const dashLen = 0.010;
-  const gap = 0.008;
-  const stitchRadius = 0.0022;
-
-  // Approximate the puff offset at any (x,y) on the front face (matches makePillowGeometry math).
-  // Returns z position of the surface at (x,y) on +Z face after bulge+pinch.
-  function surfaceZ(x, y, faceSign) {
-    const nx = x / (PILLOW_W / 2);
-    const ny = y / (PILLOW_H / 2);
-    // On the face, nz = ±1 so cos(nz*pi/2) = 0... we instead approximate the actual displaced Z.
-    // The +Z face starts at z = faceSign * PILLOW_D/2, and at this face cos(±π/2)=0 so face-center bulge math collapses.
-    // Use the formula: fz_at_face = cos(nx*π/2) * cos(ny*π/2) * BULGE * 1.15, plus subtract corner pinch toward origin (z component).
-    const BULGE_LOCAL = 0.075 * 1.15;
-    const CORNER_PINCH_LOCAL = 0.075;
-    const fz = Math.cos(nx * Math.PI / 2) * Math.cos(ny * Math.PI / 2);
-    const baseZ = faceSign * (PILLOW_D / 2 + BULGE_LOCAL * fz);
-    // Corner pinch reduces this
-    const ax = Math.abs(nx), ay = Math.abs(ny);
-    const corner = Math.pow(ax, 2.0) * Math.pow(ay, 2.0);
-    const pinch = CORNER_PINCH_LOCAL * corner * 0.5; // smaller weight on Z axis at face
-    return baseZ - faceSign * pinch;
-  }
-
-  function addDashedRect(faceSign) {
-    // Walk the four edges of the perimeter rectangle and emit dashes
-    const corners = [
-      [-w2, -h2], [ w2, -h2], [ w2,  h2], [-w2,  h2]
-    ];
-    for (let s = 0; s < 4; s++) {
-      const [ax, ay] = corners[s];
-      const [bx, by] = corners[(s + 1) % 4];
-      const dx = bx - ax, dy = by - ay;
-      const totalLen = Math.hypot(dx, dy);
-      const step = dashLen + gap;
-      let t = gap / 2;
-      while (t + dashLen <= totalLen) {
-        const t1 = t / totalLen;
-        const t2 = (t + dashLen) / totalLen;
-        const sx = ax + dx * t1, sy = ay + dy * t1;
-        const ex = ax + dx * t2, ey = ay + dy * t2;
-        const sz = surfaceZ(sx, sy, faceSign) + faceSign * 0.001;
-        const ez = surfaceZ(ex, ey, faceSign) + faceSign * 0.001;
-        const start = new THREE.Vector3(sx, sy, sz);
-        const end   = new THREE.Vector3(ex, ey, ez);
-        const mid   = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-        const stitch = new THREE.Mesh(
-          new THREE.CylinderGeometry(stitchRadius, stitchRadius, dashLen, 6),
-          stitchMat
-        );
-        const up = new THREE.Vector3(0, 1, 0);
-        const stitchDir = new THREE.Vector3().subVectors(end, start).normalize();
-        stitch.quaternion.setFromUnitVectors(up, stitchDir);
-        stitch.position.copy(mid);
-        group.add(stitch);
-        t += step;
-      }
-    }
-  }
-  addDashedRect( 1);
-  addDashedRect(-1);
-  return group;
-}
-
-const seams = makeSeams();
-seams.visible = false; // hidden by default — reference cushion has no visible stitching
-
 const pillowGroup = new THREE.Group();
 pillowGroup.add(pillow);
-pillowGroup.add(seams);
 scene.add(pillowGroup);
 
 function rebuildPillow() {
-  // Dispose old material(s)/textures
   const oldMat = pillow.material;
-  if (Array.isArray(oldMat)) {
-    oldMat.forEach(m => {
-      if (m.map) m.map.dispose();
-      m.dispose();
-    });
-  } else if (oldMat) {
+  if (oldMat) {
     if (oldMat.map) oldMat.map.dispose();
+    if (oldMat.normalMap) oldMat.normalMap.dispose();
+    if (oldMat.roughnessMap) oldMat.roughnessMap.dispose();
     oldMat.dispose();
   }
-
-  // GLB mesh = single material; fallback procedural box = material array
-  if (window.__pillowGLBLoaded) {
-    pillow.material = buildSingleMaterial();
-  } else {
-    pillow.material = buildMaterials();
-  }
+  pillow.material = buildMaterial();
 }
 
 // ---- Resize ----
@@ -605,7 +324,6 @@ function loop() {
 }
 loop();
 
-// Mark ready for Playwright — actual readiness flag is set inside GLTFLoader callback
 hud.textContent = 'loading pillow…';
 
 // ---- UI bindings ----
@@ -641,6 +359,7 @@ if (fabricSel) {
   });
 }
 
+// 正/反/雙面：GLB 為單材質，目前先保留按鈕但只更新 state（未來實作 UV 投影時啟用）
 document.querySelectorAll('#face-seg button').forEach(b => {
   b.addEventListener('click', () => {
     document.querySelectorAll('#face-seg button').forEach(x => x.setAttribute('aria-pressed', 'false'));
@@ -672,7 +391,7 @@ arBtn.addEventListener('click', () => {
   arBtn.textContent = state.autoRotate ? '⏸ 停止旋轉' : '⟳ 自動旋轉';
 });
 
-// ---- Playwright hook: load a test image programmatically ----
+// ---- Playwright hook ----
 window.__loadTestImage = function(dataUrl) {
   return new Promise((resolve, reject) => {
     const img = new Image();
