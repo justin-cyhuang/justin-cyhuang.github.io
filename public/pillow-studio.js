@@ -377,24 +377,30 @@ gltfLoader.load(
     // Translate to origin
     pillow.geometry.translate(-center.x, -center.y, -center.z);
 
-    // Blender mesh layout: X-Z is the wide pillow face, Y is thickness (pillow lying flat).
-    // Rotate -90° around X so the wide face stands up facing the camera (+Z),
-    // and the thickness becomes the Z axis (so the pillow looks puffy from the front).
-    pillow.geometry.rotateX(-Math.PI / 2);
-
-    // Recompute bbox AFTER rotation to get accurate scaling
+    // Recompute bbox after centering
     pillow.geometry.computeBoundingBox();
     const bb2 = pillow.geometry.boundingBox;
     const size2 = new THREE.Vector3();
     bb2.getSize(size2);
 
+    // GLB layout in Three.js space: X≈1.97, Y≈0.91 (thickness), Z≈1.97.
+    // We want the two large square faces to face ±Z (toward the camera),
+    // so rotate -90° around X to swap Y and Z.
+    pillow.geometry.rotateX(-Math.PI / 2);
+
+    // Recompute bbox after rotation
+    pillow.geometry.computeBoundingBox();
+    const bb3 = pillow.geometry.boundingBox;
+    const size3 = new THREE.Vector3();
+    bb3.getSize(size3);
+
     // Scale so the wider of X/Y = 0.45m (pillow face dimension)
-    const faceDim = Math.max(size2.x, size2.y);
+    const faceDim = Math.max(size3.x, size3.y);
     const scale = 0.45 / faceDim;
     pillow.geometry.scale(scale, scale, scale);
 
     pillow.visible = true;
-    hud.textContent = `ready · ${glbMesh.geometry.attributes.position.count.toLocaleString()} verts · drag to rotate`;
+    hud.textContent = `ready · GLB ${glbMesh.geometry.attributes.position.count.toLocaleString()} verts · drag to rotate`;
     window.__pillowReady = true;
     window.__pillowGLBLoaded = true;
   },
