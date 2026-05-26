@@ -296,6 +296,34 @@ gltfLoader.load(
     // GLB 大面在 ±Y → 旋轉 -90° 讓兩個正方形面朝 ±Z（鏡頭方向）
     pillow.geometry.rotateX(-Math.PI / 2);
 
+    // 修正反面鏡像：前後面共用同一張 UV [0,1]×[0,1]，從背後看時會左右反。
+    // 攤平 index → 每個三角形獨立 → 把朝後（normal.z < -0.5）的三角形 UV 做 u→1-u。
+    {
+      const flat = pillow.geometry.index ? pillow.geometry.toNonIndexed() : pillow.geometry;
+      const pos = flat.attributes.position.array;
+      const uv  = flat.attributes.uv ? flat.attributes.uv.array : null;
+      if (uv) {
+        // 重算 normal（toNonIndexed 後 face normal 較乾淨）
+        flat.computeVertexNormals();
+        const nor = flat.attributes.normal.array;
+        const triCount = pos.length / 9;
+        let flipped = 0;
+        for (let t = 0; t < triCount; t++) {
+          const i0 = t * 3, i1 = t * 3 + 1, i2 = t * 3 + 2;
+          const nzAvg = (nor[i0 * 3 + 2] + nor[i1 * 3 + 2] + nor[i2 * 3 + 2]) / 3;
+          if (nzAvg < -0.5) {
+            uv[i0 * 2] = 1 - uv[i0 * 2];
+            uv[i1 * 2] = 1 - uv[i1 * 2];
+            uv[i2 * 2] = 1 - uv[i2 * 2];
+            flipped++;
+          }
+        }
+        flat.attributes.uv.needsUpdate = true;
+        console.log(`[pillow] mirrored UVs on ${flipped} back-facing tris`);
+      }
+      pillow.geometry = flat;
+    }
+
     pillow.geometry.computeBoundingBox();
     const size = new THREE.Vector3();
     pillow.geometry.boundingBox.getSize(size);
