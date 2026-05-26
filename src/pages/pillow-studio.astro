@@ -87,6 +87,9 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 6px;
     }
+    .seg.seg-wrap {
+      grid-template-columns: repeat(5, 1fr);
+    }
     .seg button {
       padding: 7px 4px;
       font-size: 12px;
@@ -243,19 +246,31 @@
         </select>
       </div>
 
-      <h2>4. 圖案位置</h2>
+      <h2>4. 列印面積</h2>
+      <div class="seg seg-wrap" id="print-area-seg">
+        <button data-print-scale="1.00" aria-pressed="true">滿版</button>
+        <button data-print-scale="0.90" aria-pressed="false">90%</button>
+        <button data-print-scale="0.80" aria-pressed="false">80%</button>
+        <button data-print-scale="0.70" aria-pressed="false">70%</button>
+        <button data-print-scale="0.60" aria-pressed="false">60%</button>
+      </div>
+      <div class="crop-hint" id="print-area-hint" style="margin-top:-4px;">
+        印刷區會等比例縮小至中央，四周露出布料底紋
+      </div>
+
+      <h2>5. 圖案位置</h2>
       <div class="seg" id="face-seg">
         <button data-face="front" aria-pressed="true">正面</button>
         <button data-face="back" aria-pressed="false">反面</button>
         <button data-face="both" aria-pressed="false">兩面同圖</button>
       </div>
 
-      <h2>5. 底色（圖以外區域）</h2>
+      <h2>6. 底色（圖以外區域）</h2>
       <div class="field">
         <input type="color" id="base-color" value="#e8dccb" style="width: 100%; height: 40px; padding: 2px; cursor: pointer;" />
       </div>
 
-      <h2>6. 背景</h2>
+      <h2>7. 背景</h2>
       <div class="seg" id="bg-seg">
         <button data-bg="solid" aria-pressed="true">純色</button>
         <button data-bg="frosted" aria-pressed="false">毛玻璃</button>
@@ -265,7 +280,7 @@
         <button data-bg="checker">棋盤格</button>
       </div>
 
-      <h2>7. 操作</h2>
+      <h2>8. 操作</h2>
       <div class="field">
         <button id="reset-cam">重設視角</button>
       </div>

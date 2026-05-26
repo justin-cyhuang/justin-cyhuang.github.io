@@ -139,7 +139,7 @@ function makeFabricTextures(baseColorHex, fabric) {
 // ---- Image-on-fabric：把已處理好的 1024×1024 RGBA canvas 印在布料上 ----
 // state.processedImageCanvas 由裁切 UI 產出：可能含 alpha=0 區域（fit 模式）。
 // 透明區會用該布料 color texture 補底，讓圖案像「印在這塊布上」。
-function makeImageOnFabricTexture(processedCanvas, baseColorHex, fabric) {
+function makeImageOnFabricTexture(processedCanvas, baseColorHex, fabric, printScale = 1.0) {
   const size = 1024;
   const c = document.createElement('canvas');
   c.width = c.height = size;
@@ -176,8 +176,13 @@ function makeImageOnFabricTexture(processedCanvas, baseColorHex, fabric) {
     }
   }
 
-  // 2) 把使用者處理好的圖（含 alpha）疊上去
-  ctx.drawImage(processedCanvas, 0, 0, size, size);
+  // 2) 把使用者處理好的圖（含 alpha）疊上去（依 printScale 縮到中央，露出四周布料）
+  const s = Math.max(0.1, Math.min(1.0, printScale));
+  const dw = Math.round(size * s);
+  const dh = Math.round(size * s);
+  const dx = Math.round((size - dw) / 2);
+  const dy = Math.round((size - dh) / 2);
+  ctx.drawImage(processedCanvas, dx, dy, dw, dh);
 
   // 3) 微織紋雜訊：讓圖案看起來像印在布上
   const overlay = ctx.getImageData(0, 0, size, size);
@@ -226,6 +231,8 @@ const state = {
   face: 'front', // 保留 state 以便 UI 不報錯；GLB 為單材質，整顆抱枕共用
   image: null,                 // 原始 Image 物件
   processedImageCanvas: null,  // 裁切後的 1024×1024 RGBA canvas（含可能的 alpha）
+  printScale: 1.0,             // 列印面積比例（0–1，1=滿版）
+  pillowCm: 45,                // 抱枕邊長（cm），用於 UI 顯示實際印刷面積
   bg: 'solid',
   autoRotate: false,
 };
@@ -236,7 +243,7 @@ function buildMaterial() {
   const { colorTex, normalTex, roughTex } = makeFabricTextures(state.baseColor, fabric);
 
   if (state.processedImageCanvas) {
-    const imgTex = makeImageOnFabricTexture(state.processedImageCanvas, state.baseColor, fabric);
+    const imgTex = makeImageOnFabricTexture(state.processedImageCanvas, state.baseColor, fabric, state.printScale);
     return new THREE.MeshPhysicalMaterial({
       map: imgTex,
       normalMap: normalTex,
@@ -564,6 +571,28 @@ document.querySelectorAll('#face-seg button').forEach(b => {
     rebuildPillow();
   });
 });
+
+// ---- Print area (列印面積) ----
+const printAreaHint = document.getElementById('print-area-hint');
+function updatePrintAreaHint() {
+  const cm = (state.pillowCm * state.printScale).toFixed(1).replace(/\.0$/, '');
+  const pct = Math.round(state.printScale * 100);
+  if (state.printScale >= 0.999) {
+    printAreaHint.textContent = `滿版列印（${state.pillowCm} × ${state.pillowCm} cm）`;
+  } else {
+    printAreaHint.textContent = `${pct}% · 實際印刷區約 ${cm} × ${cm} cm，四周露出布料底紋`;
+  }
+}
+document.querySelectorAll('#print-area-seg button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#print-area-seg button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', 'true');
+    state.printScale = parseFloat(b.dataset.printScale);
+    updatePrintAreaHint();
+    rebuildPillow();
+  });
+});
+updatePrintAreaHint();
 
 document.querySelectorAll('#bg-seg button, [data-bg]').forEach(b => {
   b.addEventListener('click', () => {
