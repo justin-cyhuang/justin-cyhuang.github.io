@@ -129,9 +129,11 @@ function makePillowGeometry(w, h, d, segs) {
 
 const pillowGeo = makePillowGeometry(PILLOW_W, PILLOW_H, PILLOW_D, SEGS);
 
-// ---- Procedural cotton weave: color + normal + roughness maps ----
-function makeCottonTextures(baseColorHex) {
+// ---- Procedural fabric weave: color + normal + roughness maps (parameterised by fabric profile) ----
+function makeCottonTextures(baseColorHex, fabric = FABRICS.cotton) {
   const size = 512;
+  const period = fabric.period;
+  const repeat = fabric.repeat;
 
   // ---- Color (albedo) map ----
   const cc = document.createElement('canvas');
@@ -141,15 +143,16 @@ function makeCottonTextures(baseColorHex) {
   ctx.fillRect(0, 0, size, size);
   // Fine noise variation
   const img = ctx.getImageData(0, 0, size, size);
+  const amp = fabric.noiseAmp;
   for (let i = 0; i < img.data.length; i += 4) {
-    const n = (Math.random() - 0.5) * 22;
+    const n = (Math.random() - 0.5) * amp;
     img.data[i]     = Math.max(0, Math.min(255, img.data[i]     + n));
     img.data[i + 1] = Math.max(0, Math.min(255, img.data[i + 1] + n));
     img.data[i + 2] = Math.max(0, Math.min(255, img.data[i + 2] + n));
   }
   ctx.putImageData(img, 0, 0);
   // Subtle weave lines — both directions, low alpha
-  ctx.globalAlpha = 0.06;
+  ctx.globalAlpha = fabric.weaveAlpha;
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 1;
   for (let y = 0; y < size; y += 3) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke(); }
@@ -158,15 +161,15 @@ function makeCottonTextures(baseColorHex) {
   const colorTex = new THREE.CanvasTexture(cc);
   colorTex.colorSpace = THREE.SRGBColorSpace;
   colorTex.wrapS = colorTex.wrapT = THREE.RepeatWrapping;
-  colorTex.repeat.set(8, 8);
+  colorTex.repeat.set(repeat, repeat);
   colorTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-  // ---- Normal map: simulated woven cotton (over/under weave bumps) ----
+  // ---- Normal map: simulated woven fabric (over/under weave bumps) ----
   const nc = document.createElement('canvas');
   nc.width = nc.height = size;
   const nctx = nc.getContext('2d');
   const nimg = nctx.createImageData(size, size);
-  const period = 8; // weave cell size in px
+  const nStrength = fabric.normalStrength;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       // Plain weave pattern: warps and wefts alternate above/below
@@ -182,16 +185,16 @@ function makeCottonTextures(baseColorHex) {
       const height = h + noise;
       // Derive normal (approx): blue=up, red/green = slope
       const i = (y * size + x) * 4;
-      nimg.data[i]     = 128 + height * 60;      // R = X normal
-      nimg.data[i + 1] = 128 + (isWarp ? Math.cos(lx) : Math.cos(ly)) * 50; // G
-      nimg.data[i + 2] = 220;                     // B = up
+      nimg.data[i]     = 128 + height * nStrength;
+      nimg.data[i + 1] = 128 + (isWarp ? Math.cos(lx) : Math.cos(ly)) * nStrength * 0.83;
+      nimg.data[i + 2] = 220;
       nimg.data[i + 3] = 255;
     }
   }
   nctx.putImageData(nimg, 0, 0);
   const normalTex = new THREE.CanvasTexture(nc);
   normalTex.wrapS = normalTex.wrapT = THREE.RepeatWrapping;
-  normalTex.repeat.set(8, 8);
+  normalTex.repeat.set(repeat, repeat);
   normalTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
   // ---- Roughness map: weave threads slightly less rough, gaps more rough ----
@@ -216,7 +219,7 @@ function makeCottonTextures(baseColorHex) {
   rctx.putImageData(rimg, 0, 0);
   const roughTex = new THREE.CanvasTexture(rc);
   roughTex.wrapS = roughTex.wrapT = THREE.RepeatWrapping;
-  roughTex.repeat.set(8, 8);
+  roughTex.repeat.set(repeat, repeat);
 
   return { colorTex, normalTex, roughTex };
 }
@@ -261,8 +264,61 @@ function makeImageOnFabricTexture(image, baseColorHex) {
 // ---- Material assembly ----
 // BoxGeometry materials order: [+X, -X, +Y, -Y, +Z, -Z]
 // Visually: +Z = front (toward viewer), -Z = back, +X = right side, -X = left side, +Y = top, -Y = bottom.
+// ---- Fabric profiles (material physical properties + texture params) ----
+const FABRICS = {
+  cotton: {
+    label: '棉布 Cotton',
+    period: 8,
+    repeat: 8,
+    weaveAlpha: 0.06,
+    noiseAmp: 22,
+    normalStrength: 60,
+    normalScale: 0.8,
+    roughness: 0.95,
+    sheen: 0.7,
+    sheenColor: 0xfff5e8,
+    sheenRoughness: 0.45,
+    printedRoughness: 0.88,
+    printedSheen: 0.55,
+    tintShift: 0,           // 0..1 nudge toward warm grey
+  },
+  linen: {
+    label: '麻 Linen',
+    period: 14,             // coarser weave
+    repeat: 6,
+    weaveAlpha: 0.13,       // more visible threads
+    noiseAmp: 38,           // chunkier fibre noise
+    normalStrength: 95,     // deeper weave bumps
+    normalScale: 1.15,
+    roughness: 1.0,         // very matte
+    sheen: 0.15,            // almost no sheen
+    sheenColor: 0xf3ede0,
+    sheenRoughness: 0.85,
+    printedRoughness: 0.96,
+    printedSheen: 0.10,
+    tintShift: 0.04,        // slight warm desat
+  },
+  velvet: {
+    label: '絲絨 Velvet',
+    period: 3,              // very fine fuzz
+    repeat: 12,
+    weaveAlpha: 0.02,       // hide weave lines
+    noiseAmp: 14,           // soft pile noise
+    normalStrength: 25,     // subtle surface
+    normalScale: 0.35,
+    roughness: 0.55,        // low; sheen dominates
+    sheen: 1.0,
+    sheenColor: 0xffeed8,
+    sheenRoughness: 0.18,   // sharp velvet highlight
+    printedRoughness: 0.65,
+    printedSheen: 0.9,
+    tintShift: -0.06,       // slight deepening
+  },
+};
+
 const state = {
   baseColor: '#e8dccb',
+  fabric: 'cotton',
   face: 'front', // 'front' | 'back' | 'both'
   image: null,   // HTMLImageElement
   bg: 'solid',
@@ -270,17 +326,18 @@ const state = {
 };
 
 function buildMaterials() {
-  const { colorTex, normalTex, roughTex } = makeCottonTextures(state.baseColor);
+  const fabric = FABRICS[state.fabric] || FABRICS.cotton;
+  const { colorTex, normalTex, roughTex } = makeCottonTextures(state.baseColor, fabric);
   const baseMat = new THREE.MeshPhysicalMaterial({
     map: colorTex,
     normalMap: normalTex,
-    normalScale: new THREE.Vector2(0.8, 0.8),
+    normalScale: new THREE.Vector2(fabric.normalScale, fabric.normalScale),
     roughnessMap: roughTex,
-    roughness: 0.95,
+    roughness: fabric.roughness,
     metalness: 0.0,
-    sheen: 0.7,
-    sheenColor: new THREE.Color(0xfff5e8),
-    sheenRoughness: 0.45,
+    sheen: fabric.sheen,
+    sheenColor: new THREE.Color(fabric.sheenColor),
+    sheenRoughness: fabric.sheenRoughness,
     clearcoat: 0.0,
   });
 
@@ -291,9 +348,9 @@ function buildMaterials() {
     m.map = imgTex;
     m.normalMap = normalTex;       // share weave bumps
     m.roughnessMap = roughTex;
-    // Printed surface slightly less rough / more sheen for ink-on-fabric look
-    m.roughness = 0.88;
-    m.sheen = 0.55;
+    // Printed surface uses fabric-specific printed values
+    m.roughness = fabric.printedRoughness;
+    m.sheen = fabric.printedSheen;
     return m;
   }
 
@@ -572,6 +629,17 @@ document.getElementById('base-color').addEventListener('input', (e) => {
   state.baseColor = e.target.value;
   rebuildPillow();
 });
+
+const fabricSel = document.getElementById('fabric');
+if (fabricSel) {
+  fabricSel.disabled = false;
+  fabricSel.addEventListener('change', (e) => {
+    state.fabric = e.target.value;
+    rebuildPillow();
+    const f = FABRICS[state.fabric];
+    if (f) hud.textContent = `fabric · ${f.label}`;
+  });
+}
 
 document.querySelectorAll('#face-seg button').forEach(b => {
   b.addEventListener('click', () => {
