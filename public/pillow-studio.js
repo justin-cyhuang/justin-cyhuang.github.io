@@ -3,6 +3,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const canvas = document.getElementById('pillow-canvas');
 const stage = document.getElementById('stage');
@@ -13,8 +14,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true 
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = false;
 
 const scene = new THREE.Scene();
 scene.background = null; // CSS handles bg
@@ -43,18 +43,10 @@ scene.add(hemi);
 // Viewer looks down -Z; "right-back" means +X / +Z (behind pillow from viewer), "upper" means +Y.
 // Place at 45° angles.
 const keyLight = new THREE.DirectionalLight(0xfff2e1, 1.6);
-keyLight.position.set(2.5, 2.5, 2.5); // right, up, back-of-pillow (closer to viewer because pillow faces -Z naturally)
-// Wait: viewer at +Z looking toward origin. "Back of pillow from viewer" = -Z. So upper-right-back-of-pillow:
-keyLight.position.set(2.2, 2.2, -2.2);
-keyLight.castShadow = true;
-keyLight.shadow.mapSize.set(1024, 1024);
-keyLight.shadow.camera.left = -2;
-keyLight.shadow.camera.right = 2;
-keyLight.shadow.camera.top = 2;
-keyLight.shadow.camera.bottom = -2;
-keyLight.shadow.camera.near = 0.5;
-keyLight.shadow.camera.far = 8;
-keyLight.shadow.bias = -0.0005;
+// Viewer at +Z looking toward origin (-Z). "Viewer's upper-right-back" =
+// right (+X), up (+Y), behind viewer (+Z, further from pillow than camera).
+keyLight.position.set(2.5, 3.0, 3.5);
+keyLight.castShadow = false;
 scene.add(keyLight);
 
 // Fill light from viewer-front-left, dimmer, cool
@@ -67,13 +59,7 @@ const rim = new THREE.DirectionalLight(0xffe6c8, 0.25);
 rim.position.set(0, -1.0, -3.0);
 scene.add(rim);
 
-// Ground shadow catcher (subtle)
-const shadowMat = new THREE.ShadowMaterial({ opacity: 0.18 });
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), shadowMat);
-ground.rotation.x = -Math.PI / 2;
-ground.position.y = -0.32;
-ground.receiveShadow = true;
-scene.add(ground);
+// (Ground shadow catcher removed — user wants no background shadow)
 
 // ---- Pillow geometry: puffy 45×45 cm cube with inflated faces ----
 // Scene unit: 1 = 1 meter. 45cm = 0.45.
@@ -331,7 +317,7 @@ function buildMaterials() {
     sideMat = baseMat;
   }
 
-  // Material order: [+X, -X, +Y, -Y, +Z, -Z]
+  // Material order: [+X, -X, +Y, -Y, +Z, -Z]  (kept for legacy fallback geometry; GLB mesh uses single material)
   return [
     sideMat.clone(),  // +X right side
     sideMat.clone(),  // -X left side
@@ -342,9 +328,94 @@ function buildMaterials() {
   ];
 }
 
-let pillow = new THREE.Mesh(pillowGeo, buildMaterials());
-pillow.castShadow = true;
-pillow.receiveShadow = true;
+// Single-material builder for the GLB mesh (uses front face material — image is wrapped over whole pillow).
+function buildSingleMaterial() {
+  const mats = buildMaterials();
+  // index 4 = +Z front in BoxGeometry order — this is the printed face when an image is set
+  return mats[4];
+}
+
+// ---- Load real pillow geometry from Blender export ----
+let pillow = new THREE.Mesh(
+  new THREE.BoxGeometry(0.001, 0.001, 0.001),  // placeholder until GLB loads
+  buildSingleMaterial()
+);
+pillow.visible = false;
+pillow.castShadow = false;
+pillow.receiveShadow = false;
+
+const gltfLoader = new GLTFLoader();
+gltfLoader.load(
+  './pillow.glb',
+  (gltf) => {
+    // Find the mesh inside the loaded scene
+    let glbMesh = null;
+    gltf.scene.traverse((obj) => {
+      if (obj.isMesh && !glbMesh) glbMesh = obj;
+    });
+    if (!glbMesh) {
+      console.error('No mesh found in pillow.glb');
+      pillow.visible = true;
+      return;
+    }
+
+    // Replace placeholder geometry with real GLB geometry
+    const oldGeo = pillow.geometry;
+    pillow.geometry = glbMesh.geometry.clone();
+    oldGeo.dispose();
+
+    // Ensure normals + tangents for proper lighting
+    if (!pillow.geometry.attributes.normal) pillow.geometry.computeVertexNormals();
+
+    // Center & scale to match the original procedural footprint (~0.45m wide)
+    pillow.geometry.computeBoundingBox();
+    const bb = pillow.geometry.boundingBox;
+    const size = new THREE.Vector3();
+    bb.getSize(size);
+    const center = new THREE.Vector3();
+    bb.getCenter(center);
+    // Translate to origin
+    pillow.geometry.translate(-center.x, -center.y, -center.z);
+
+    // Blender mesh layout: X-Z is the wide pillow face, Y is thickness (pillow lying flat).
+    // Rotate -90° around X so the wide face stands up facing the camera (+Z),
+    // and the thickness becomes the Z axis (so the pillow looks puffy from the front).
+    pillow.geometry.rotateX(-Math.PI / 2);
+
+    // Recompute bbox AFTER rotation to get accurate scaling
+    pillow.geometry.computeBoundingBox();
+    const bb2 = pillow.geometry.boundingBox;
+    const size2 = new THREE.Vector3();
+    bb2.getSize(size2);
+
+    // Scale so the wider of X/Y = 0.45m (pillow face dimension)
+    const faceDim = Math.max(size2.x, size2.y);
+    const scale = 0.45 / faceDim;
+    pillow.geometry.scale(scale, scale, scale);
+
+    pillow.visible = true;
+    hud.textContent = `ready · ${glbMesh.geometry.attributes.position.count.toLocaleString()} verts · drag to rotate`;
+    window.__pillowReady = true;
+    window.__pillowGLBLoaded = true;
+  },
+  (xhr) => {
+    if (xhr.total) {
+      const pct = Math.round((xhr.loaded / xhr.total) * 100);
+      hud.textContent = `loading pillow… ${pct}%`;
+    }
+  },
+  (err) => {
+    console.error('Failed to load pillow.glb', err);
+    hud.textContent = 'failed to load pillow.glb · using fallback';
+    // Fallback: use old procedural geometry
+    const oldGeo = pillow.geometry;
+    pillow.geometry = pillowGeo;
+    oldGeo.dispose();
+    pillow.material = buildMaterials();
+    pillow.visible = true;
+    window.__pillowReady = true;
+  }
+);
 
 // ---- Seam stitching: dashed line along the front-face perimeter, following the puffy surface ----
 function makeSeams() {
@@ -430,14 +501,24 @@ pillowGroup.add(seams);
 scene.add(pillowGroup);
 
 function rebuildPillow() {
-  // Dispose old materials/textures
-  if (Array.isArray(pillow.material)) {
-    pillow.material.forEach(m => {
+  // Dispose old material(s)/textures
+  const oldMat = pillow.material;
+  if (Array.isArray(oldMat)) {
+    oldMat.forEach(m => {
       if (m.map) m.map.dispose();
       m.dispose();
     });
+  } else if (oldMat) {
+    if (oldMat.map) oldMat.map.dispose();
+    oldMat.dispose();
   }
-  pillow.material = buildMaterials();
+
+  // GLB mesh = single material; fallback procedural box = material array
+  if (window.__pillowGLBLoaded) {
+    pillow.material = buildSingleMaterial();
+  } else {
+    pillow.material = buildMaterials();
+  }
 }
 
 // ---- Resize ----
@@ -461,9 +542,8 @@ function loop() {
 }
 loop();
 
-// Mark ready for Playwright
-hud.textContent = 'ready · drag to rotate · scroll to zoom';
-window.__pillowReady = true;
+// Mark ready for Playwright — actual readiness flag is set inside GLTFLoader callback
+hud.textContent = 'loading pillow…';
 
 // ---- UI bindings ----
 document.getElementById('img-upload').addEventListener('change', (e) => {
