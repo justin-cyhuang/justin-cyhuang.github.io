@@ -346,7 +346,7 @@ pillow.receiveShadow = false;
 
 const gltfLoader = new GLTFLoader();
 gltfLoader.load(
-  './pillow.glb',
+  '/pillow.glb',
   (gltf) => {
     // Find the mesh inside the loaded scene
     let glbMesh = null;
