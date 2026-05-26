@@ -136,21 +136,50 @@ function makeFabricTextures(baseColorHex, fabric) {
   return { colorTex, normalTex, roughTex };
 }
 
-// ---- Image-on-fabric：使用者圖片 cover 鋪滿，邊緣出血以利包覆側面 ----
-function makeImageOnFabricTexture(image, baseColorHex) {
+// ---- Image-on-fabric：把已處理好的 1024×1024 RGBA canvas 印在布料上 ----
+// state.processedImageCanvas 由裁切 UI 產出：可能含 alpha=0 區域（fit 模式）。
+// 透明區會用該布料 color texture 補底，讓圖案像「印在這塊布上」。
+function makeImageOnFabricTexture(processedCanvas, baseColorHex, fabric) {
   const size = 1024;
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = baseColorHex;
-  ctx.fillRect(0, 0, size, size);
-  const iw = image.naturalWidth || image.width;
-  const ih = image.naturalHeight || image.height;
-  const scale = Math.max(size / iw, size / ih);
-  const dw = iw * scale;
-  const dh = ih * scale;
-  ctx.drawImage(image, (size - dw) / 2, (size - dh) / 2, dw, dh);
-  // 微織紋雜訊：讓圖看起來是「印在布上」
+
+  // 1) 先用 fabric color 鋪滿底（含織紋雜訊），平鋪 2×2 來模擬 RepeatWrapping
+  const fabricTile = document.createElement('canvas');
+  const tileSize = 512;
+  fabricTile.width = fabricTile.height = tileSize;
+  const fctx = fabricTile.getContext('2d');
+  fctx.fillStyle = baseColorHex;
+  fctx.fillRect(0, 0, tileSize, tileSize);
+  const fimg = fctx.getImageData(0, 0, tileSize, tileSize);
+  const noiseAmp = (fabric && fabric.noiseAmp) || 22;
+  for (let i = 0; i < fimg.data.length; i += 4) {
+    const n = (Math.random() - 0.5) * noiseAmp;
+    fimg.data[i]     = Math.max(0, Math.min(255, fimg.data[i]     + n));
+    fimg.data[i + 1] = Math.max(0, Math.min(255, fimg.data[i + 1] + n));
+    fimg.data[i + 2] = Math.max(0, Math.min(255, fimg.data[i + 2] + n));
+  }
+  fctx.putImageData(fimg, 0, 0);
+  // 弱化的織紋
+  fctx.globalAlpha = (fabric && fabric.weaveAlpha) || 0.06;
+  fctx.strokeStyle = '#000';
+  fctx.lineWidth = 1;
+  for (let y = 0; y < tileSize; y += 3) { fctx.beginPath(); fctx.moveTo(0, y); fctx.lineTo(tileSize, y); fctx.stroke(); }
+  for (let x = 0; x < tileSize; x += 3) { fctx.beginPath(); fctx.moveTo(x, 0); fctx.lineTo(x, tileSize); fctx.stroke(); }
+  fctx.globalAlpha = 1;
+
+  // 平鋪 fabric tile 到 1024×1024
+  for (let ty = 0; ty < size; ty += tileSize) {
+    for (let tx = 0; tx < size; tx += tileSize) {
+      ctx.drawImage(fabricTile, tx, ty);
+    }
+  }
+
+  // 2) 把使用者處理好的圖（含 alpha）疊上去
+  ctx.drawImage(processedCanvas, 0, 0, size, size);
+
+  // 3) 微織紋雜訊：讓圖案看起來像印在布上
   const overlay = ctx.getImageData(0, 0, size, size);
   for (let i = 0; i < overlay.data.length; i += 4) {
     const n = (Math.random() - 0.5) * 10;
@@ -159,6 +188,7 @@ function makeImageOnFabricTexture(image, baseColorHex) {
     overlay.data[i + 2] = Math.max(0, Math.min(255, overlay.data[i + 2] + n));
   }
   ctx.putImageData(overlay, 0, 0);
+
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -194,7 +224,8 @@ const state = {
   baseColor: '#e8dccb',
   fabric: 'cotton',
   face: 'front', // 保留 state 以便 UI 不報錯；GLB 為單材質，整顆抱枕共用
-  image: null,
+  image: null,                 // 原始 Image 物件
+  processedImageCanvas: null,  // 裁切後的 1024×1024 RGBA canvas（含可能的 alpha）
   bg: 'solid',
   autoRotate: false,
 };
@@ -204,8 +235,8 @@ function buildMaterial() {
   const fabric = FABRICS[state.fabric] || FABRICS.cotton;
   const { colorTex, normalTex, roughTex } = makeFabricTextures(state.baseColor, fabric);
 
-  if (state.image) {
-    const imgTex = makeImageOnFabricTexture(state.image, state.baseColor);
+  if (state.processedImageCanvas) {
+    const imgTex = makeImageOnFabricTexture(state.processedImageCanvas, state.baseColor, fabric);
     return new THREE.MeshPhysicalMaterial({
       map: imgTex,
       normalMap: normalTex,
@@ -335,13 +366,150 @@ document.getElementById('img-upload').addEventListener('change', (e) => {
     const img = new Image();
     img.onload = () => {
       state.image = img;
-      rebuildPillow();
-      hud.textContent = `image loaded · ${img.width}×${img.height}`;
+      const ar = img.naturalWidth / img.naturalHeight;
+      if (Math.abs(ar - 1) < 0.02) {
+        // 已是 1:1（±2%），直接 cover 進 1024×1024 canvas，無需開裁切窗
+        state.processedImageCanvas = bakeCanvas(img, 'crop', { offsetX: 0, offsetY: 0, scale: 1 });
+        rebuildPillow();
+        hud.textContent = `image ready · ${img.width}×${img.height} (1:1)`;
+      } else {
+        openCropModal(img);
+      }
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 });
+
+// ---- Bake processed image to 1024×1024 RGBA canvas ----
+// mode='crop'：圖 cover 滿框，超出裁掉（offsetX/Y in [-1,1], scale>=1）
+// mode='fit' ：圖 contain 進框置中，空白 alpha=0
+function bakeCanvas(img, mode, transform) {
+  const SIZE = 1024;
+  const c = document.createElement('canvas');
+  c.width = c.height = SIZE;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (mode === 'fit') {
+    // contain
+    const s = Math.min(SIZE / iw, SIZE / ih);
+    const dw = iw * s;
+    const dh = ih * s;
+    ctx.drawImage(img, (SIZE - dw) / 2, (SIZE - dh) / 2, dw, dh);
+  } else {
+    // crop / cover
+    const baseScale = Math.max(SIZE / iw, SIZE / ih);
+    const s = baseScale * (transform.scale || 1);
+    const dw = iw * s;
+    const dh = ih * s;
+    // offset 範圍：可拖到圖左/右/上/下邊緣對齊框邊
+    const maxOffX = Math.max(0, (dw - SIZE) / 2);
+    const maxOffY = Math.max(0, (dh - SIZE) / 2);
+    const offX = (transform.offsetX || 0) * maxOffX;
+    const offY = (transform.offsetY || 0) * maxOffY;
+    ctx.drawImage(img, (SIZE - dw) / 2 + offX, (SIZE - dh) / 2 + offY, dw, dh);
+  }
+  return c;
+}
+
+// ---- Crop Modal ----
+function openCropModal(img) {
+  const overlay = document.getElementById('crop-overlay');
+  const preview = document.getElementById('crop-preview');
+  const modeBtns = overlay.querySelectorAll('[data-crop-mode]');
+  const aspectLabel = document.getElementById('crop-aspect');
+  const ar = img.naturalWidth / img.naturalHeight;
+  aspectLabel.textContent = `原圖 ${img.naturalWidth}×${img.naturalHeight} · 比例 ${ar.toFixed(2)}:1 · 抱枕 1:1`;
+
+  let mode = 'crop';                              // 'crop' | 'fit'
+  let t = { offsetX: 0, offsetY: 0, scale: 1 };   // crop 模式下的偏移/縮放
+  let dragging = false;
+  let dragStart = null;
+
+  function renderPreview() {
+    const ctx = preview.getContext('2d');
+    const W = preview.width;
+    ctx.clearRect(0, 0, W, W);
+    // 棋盤格底（提示透明區）
+    const cell = 16;
+    for (let y = 0; y < W; y += cell) {
+      for (let x = 0; x < W; x += cell) {
+        ctx.fillStyle = ((x / cell + y / cell) % 2 === 0) ? '#eee' : '#ddd';
+        ctx.fillRect(x, y, cell, cell);
+      }
+    }
+    // 把 bake 結果縮到 preview
+    const baked = bakeCanvas(img, mode, t);
+    ctx.drawImage(baked, 0, 0, W, W);
+    // 1:1 框線
+    ctx.strokeStyle = '#d97757';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, W - 2, W - 2);
+  }
+
+  modeBtns.forEach(b => {
+    b.onclick = () => {
+      modeBtns.forEach(x => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      mode = b.dataset.cropMode;
+      // 切換模式時重設 transform
+      t = { offsetX: 0, offsetY: 0, scale: 1 };
+      document.getElementById('crop-zoom').value = '1';
+      document.getElementById('crop-hint').textContent =
+        mode === 'crop'
+          ? '裁切模式：拖曳調整位置，滑桿縮放。超出 1:1 框的部分會被裁掉。'
+          : '保留全圖：整張圖縮到框內置中，空白處會顯示布料本身（含紋理）。';
+      renderPreview();
+    };
+  });
+
+  // 拖曳
+  preview.onmousedown = (e) => {
+    if (mode !== 'crop') return;
+    dragging = true;
+    dragStart = { x: e.offsetX, y: e.offsetY, ox: t.offsetX, oy: t.offsetY };
+  };
+  preview.onmousemove = (e) => {
+    if (!dragging) return;
+    const W = preview.width;
+    const dx = (e.offsetX - dragStart.x) / (W / 2);
+    const dy = (e.offsetY - dragStart.y) / (W / 2);
+    t.offsetX = Math.max(-1, Math.min(1, dragStart.ox + dx));
+    t.offsetY = Math.max(-1, Math.min(1, dragStart.oy + dy));
+    renderPreview();
+  };
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  // 縮放滑桿
+  const zoom = document.getElementById('crop-zoom');
+  zoom.value = '1';
+  zoom.oninput = () => {
+    if (mode !== 'crop') return;
+    t.scale = parseFloat(zoom.value);
+    renderPreview();
+  };
+
+  // 確認/取消
+  document.getElementById('crop-confirm').onclick = () => {
+    state.processedImageCanvas = bakeCanvas(img, mode, t);
+    rebuildPillow();
+    hud.textContent = `image ready · ${mode === 'crop' ? '裁切' : '保留全圖'} · ${img.width}×${img.height}`;
+    overlay.style.display = 'none';
+  };
+  document.getElementById('crop-cancel').onclick = () => {
+    overlay.style.display = 'none';
+    document.getElementById('img-upload').value = '';
+  };
+
+  // 預設 crop 模式
+  modeBtns.forEach(x => x.setAttribute('aria-pressed', x.dataset.cropMode === 'crop' ? 'true' : 'false'));
+  document.getElementById('crop-hint').textContent =
+    '裁切模式：拖曳調整位置，滑桿縮放。超出 1:1 框的部分會被裁掉。';
+  overlay.style.display = 'flex';
+  renderPreview();
+}
 
 document.getElementById('base-color').addEventListener('input', (e) => {
   state.baseColor = e.target.value;
@@ -392,13 +560,15 @@ arBtn.addEventListener('click', () => {
 });
 
 // ---- Playwright hook ----
-window.__loadTestImage = function(dataUrl) {
+window.__loadTestImage = function(dataUrl, mode) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       state.image = img;
+      // 預設 crop 模式（cover），測試可傳 'fit' 來驗證保留全圖
+      state.processedImageCanvas = bakeCanvas(img, mode || 'crop', { offsetX: 0, offsetY: 0, scale: 1 });
       rebuildPillow();
-      hud.textContent = `test image loaded · ${img.width}×${img.height}`;
+      hud.textContent = `test image loaded · ${img.width}×${img.height} · ${mode || 'crop'}`;
       resolve(true);
     };
     img.onerror = reject;
