@@ -87,9 +87,6 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 6px;
     }
-    .seg.seg-wrap {
-      grid-template-columns: repeat(5, 1fr);
-    }
     .seg button {
       padding: 7px 4px;
       font-size: 12px;
@@ -247,11 +244,9 @@
       </div>
 
       <h2>4. 列印面積</h2>
-      <div class="seg seg-wrap" id="print-area-seg">
+      <div class="seg" id="print-area-seg">
         <button data-print-scale="1.00" aria-pressed="true">滿版</button>
-        <button data-print-scale="0.90" aria-pressed="false">90%</button>
         <button data-print-scale="0.80" aria-pressed="false">80%</button>
-        <button data-print-scale="0.70" aria-pressed="false">70%</button>
         <button data-print-scale="0.60" aria-pressed="false">60%</button>
       </div>
       <div class="crop-hint" id="print-area-hint" style="margin-top:-4px;">
