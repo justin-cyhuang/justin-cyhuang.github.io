@@ -1,0 +1,254 @@
+/**
+ * Justin's Workshop - 指南頁面標準樣式範本
+ * 
+ * 用於所有技術指南和文件頁面的一致性排版
+ * 最後更新: 2026-06-04
+ * 
+ * 設計原則:
+ * - 深色文字 (#1a1a1a) 在淺色背景上，確保 WCAG 可訪問性
+ * - 淺色背景區塊使用明確的顏色值，避免依賴 CSS 變數
+ * - 對比框（do/dont）使用綠色/紅色區分，文字始終深色
+ * - 導航卡片統一使用白色背景 + 深色標題和描述文字
+ */
+
+/* === 主容器 === */
+.guide {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+/* === 麵包屑導航 === */
+.breadcrumb {
+  margin-bottom: 1.5rem;
+}
+
+.breadcrumb a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.breadcrumb a:hover {
+  color: var(--link-hover);
+}
+
+/* === 頁面標題區 === */
+.guide-header {
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.guide-header h1 {
+  font-size: 2.25rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+/* === 章節結構 === */
+section {
+  margin: 3rem 0;
+}
+
+section h2 {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+section h3 {
+  font-size: 1.25rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+/* === 程式碼區塊 === */
+pre {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  line-height: 1.5;
+  margin: 0.75rem 0;
+}
+
+code {
+  background: var(--bg-secondary);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: ui-monospace, monospace;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* === 對比框（正確/錯誤做法） === */
+.comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.do, .dont {
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.do {
+  background: #dcfce7;
+  border: 2px solid #16a34a;
+  color: #1a1a1a;
+}
+
+.dont {
+  background: #fee2e2;
+  border: 2px solid #dc2626;
+  color: #1a1a1a;
+}
+
+.do h4, .dont h4 {
+  margin: 0 0 0.75rem;
+  color: #1a1a1a;
+}
+
+.do pre, .dont pre,
+.do code, .dont code {
+  color: #1a1a1a;
+}
+
+/* === 提示框（Callout） === */
+.callout {
+  padding: 1rem 1.25rem;
+  border-radius: 6px;
+  margin: 1.5rem 0;
+  border-left: 4px solid;
+  color: #1a1a1a;
+}
+
+.callout a {
+  color: #1a1a1a;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.callout.info {
+  background: #e0f2fe;
+  border-color: #0284c7;
+}
+
+.callout.tip {
+  background: #dcfce7;
+  border-color: #16a34a;
+}
+
+.callout.warning {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+/* === 範例對比（簡短對比） === */
+.example-pair {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+}
+
+.example-pair .bad,
+.example-pair .good {
+  margin: 0.5rem 0;
+}
+
+/* === 範例框 === */
+.example-box {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  border-left: 4px solid var(--link-color);
+}
+
+.example-box h4 {
+  margin: 0 0 0.75rem;
+  color: var(--link-color);
+}
+
+/* === 導航區域 === */
+.guide-nav {
+  margin: 4rem 0 3rem;
+  padding: 2rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.guide-nav h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+}
+
+/* === 導航卡片網格 === */
+.nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.nav-card {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.nav-card:hover {
+  border-color: var(--link-hover);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.nav-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.nav-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4a4a4a;
+}
+
+/* === 響應式設計 === */
+@media (max-width: 768px) {
+  .guide {
+    padding: 0 1rem;
+  }
+
+  .guide-header h1 {
+    font-size: 1.75rem;
+  }
+
+  section h2 {
+    font-size: 1.5rem;
+  }
+
+  .comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-grid {
+    grid-template-columns: 1fr;
+  }
+}
