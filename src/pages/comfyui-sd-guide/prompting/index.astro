@@ -264,13 +264,32 @@ Viewed from a first-person perspective.</code></pre>
   .example-pair {
     margin: 1rem 0;
     padding: 1rem;
-    background: var(--bg-secondary);
+    background: #f9fafb;
     border-radius: 6px;
   }
 
   .example-pair .bad,
   .example-pair .good {
     margin: 0.5rem 0;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+  }
+
+  .example-pair .bad {
+    background: #fee;
+    border-left: 3px solid #ef4444;
+    color: #1a1a1a;
+  }
+
+  .example-pair .good {
+    background: #dcfce7;
+    border-left: 3px solid #16a34a;
+    color: #1a1a1a;
+  }
+
+  .example-pair .bad strong,
+  .example-pair .good strong {
+    color: #1a1a1a;
   }
 
   .structure-template {
