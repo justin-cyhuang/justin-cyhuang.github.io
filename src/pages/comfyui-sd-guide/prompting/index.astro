@@ -250,46 +250,35 @@ Viewed from a first-person perspective.</code></pre>
   .do {
     background: #dcfce7;
     border: 2px solid #16a34a;
+    color: #1a1a1a;
   }
 
   .dont {
     background: #fee2e2;
     border: 2px solid #dc2626;
+    color: #1a1a1a;
   }
 
   .do h4, .dont h4 {
     margin: 0 0 0.75rem;
+    color: #1a1a1a;
+  }
+
+  .do pre, .dont pre,
+  .do code, .dont code {
+    color: #1a1a1a;
   }
 
   .example-pair {
     margin: 1rem 0;
     padding: 1rem;
-    background: #f9fafb;
+    background: var(--bg-secondary);
     border-radius: 6px;
   }
 
   .example-pair .bad,
   .example-pair .good {
     margin: 0.5rem 0;
-    padding: 0.75rem 1rem;
-    border-radius: 4px;
-  }
-
-  .example-pair .bad {
-    background: #fee;
-    border-left: 3px solid #ef4444;
-    color: #1a1a1a;
-  }
-
-  .example-pair .good {
-    background: #dcfce7;
-    border-left: 3px solid #16a34a;
-    color: #1a1a1a;
-  }
-
-  .example-pair .bad strong,
-  .example-pair .good strong {
-    color: #1a1a1a;
   }
 
   .structure-template {
