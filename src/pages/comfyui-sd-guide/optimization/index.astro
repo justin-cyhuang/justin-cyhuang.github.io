@@ -1,0 +1,478 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <article class="guide">
+    <nav class="breadcrumb">
+      <a href="/comfyui-sd-guide/">← ComfyUI SD 指南</a>
+    </nav>
+
+    <header class="guide-header">
+      <h1>💾 VRAM 優化</h1>
+      <p class="subtitle">
+        從 16GB 降到 8GB 的優化策略
+      </p>
+    </header>
+
+    <section id="overview">
+      <h2>📊 顯存佔用分析</h2>
+      <p>
+        以 SD 3.5 Large 模型 (fp16 精度) 為例，完整載入需要：
+      </p>
+      <ul>
+        <li><strong>SD 3.5 Large UNet:</strong> ~4.5GB</li>
+        <li><strong>T5-XXL 文字編碼器:</strong> ~9.5GB</li>
+        <li><strong>CLIP-L + CLIP-G:</strong> ~2.5GB</li>
+        <li><strong>VAE:</strong> ~0.3GB</li>
+        <li><strong>總計:</strong> ~16.8GB</li>
+      </ul>
+
+      <div class="callout info">
+        <strong>💡 瓶頸所在</strong><br>
+        T5-XXL 佔了 56% 的 VRAM，是首要優化目標。<br>
+        其次是 UNet 模型本體（27%）。
+      </div>
+    </section>
+
+    <section id="strategies">
+      <h2>🛠️ 四種優化方案</h2>
+      
+      <div class="strategy-grid">
+        <div class="strategy-card">
+          <h3>方案 A：用 Medium 模型</h3>
+          <div class="spec">
+            <strong>節省:</strong> ~6GB<br>
+            <strong>品質:</strong> 85-90% of Large<br>
+            <strong>速度:</strong> 快 30-40%
+          </div>
+          <pre><code>改用 sd3.5_medium.safetensors
+UNet: 4.5GB → 2.0GB</code></pre>
+          <p class="desc">
+            適合日常生成、批次處理。Medium 的參數量是 Large 的 31%，
+            但對一般用途品質差距不大。
+          </p>
+        </div>
+
+        <div class="strategy-card">
+          <h3>方案 B：T5 降精度</h3>
+          <div class="spec">
+            <strong>節省:</strong> ~5GB<br>
+            <strong>品質:</strong> 98% of fp16<br>
+            <strong>速度:</strong> 幾乎無影響
+          </div>
+          <pre><code>使用 t5xxl_fp8_e4m3fn.safetensors
+T5: 9.5GB → 4.7GB</code></pre>
+          <p class="desc">
+            CP 值最高的方案。fp8 量化對文字理解能力幾乎無損失，
+            但顯存減半。放在 <code>ComfyUI/models/text_encoders/</code>。
+          </p>
+        </div>
+
+        <div class="strategy-card">
+          <h3>方案 C：啟動參數優化</h3>
+          <div class="spec">
+            <strong>節省:</strong> ~4-6GB<br>
+            <strong>品質:</strong> 100%<br>
+            <strong>速度:</strong> 慢 15-20%
+          </div>
+          <pre><code>python main.py --lowvram
+或
+python main.py --novram</code></pre>
+          <p class="desc">
+            模型分段載入到 VRAM，用時間換空間。<br>
+            <code>--lowvram</code> 適合 6-8GB 卡。<br>
+            <code>--novram</code> 適合 4GB 以下（很慢）。
+          </p>
+        </div>
+
+        <div class="strategy-card">
+          <h3>方案 D：組合拳 (8GB 卡)</h3>
+          <div class="spec">
+            <strong>節省:</strong> ~11GB<br>
+            <strong>品質:</strong> 80-85%<br>
+            <strong>速度:</strong> 中等
+          </div>
+          <pre><code>Medium + fp8 T5 + --lowvram
+總需求: 2.0 + 4.7 + 2.5 + 0.3 = 9.5GB
+實際運行: ~7-8GB (分段載入)</code></pre>
+          <p class="desc">
+            適合 RTX 3070 / 4060 Ti 8GB 等主流顯卡。
+            三管齊下，可在 8GB 卡流暢運行。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="comparison">
+      <h2>📈 方案對照表</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>方案</th>
+            <th>VRAM 需求</th>
+            <th>品質</th>
+            <th>速度</th>
+            <th>適用顯卡</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>無優化 (Large fp16)</td>
+            <td>~17GB</td>
+            <td>100%</td>
+            <td>100%</td>
+            <td>RTX 4090, A5000</td>
+          </tr>
+          <tr>
+            <td>方案 B (fp8 T5)</td>
+            <td>~12GB</td>
+            <td>98%</td>
+            <td>100%</td>
+            <td>RTX 4070 Ti, 3090</td>
+          </tr>
+          <tr>
+            <td>方案 A (Medium)</td>
+            <td>~11GB</td>
+            <td>85%</td>
+            <td>130%</td>
+            <td>RTX 3080 10GB</td>
+          </tr>
+          <tr>
+            <td>方案 A+B 組合</td>
+            <td>~6GB</td>
+            <td>83%</td>
+            <td>125%</td>
+            <td>RTX 3060 12GB</td>
+          </tr>
+          <tr>
+            <td>方案 D (全開)</td>
+            <td>~8GB</td>
+            <td>80%</td>
+            <td>90%</td>
+            <td>RTX 3070 8GB</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="downloads">
+      <h2>📥 模型下載</h2>
+      
+      <h3>Medium 模型</h3>
+      <div class="download-box">
+        <strong>HuggingFace:</strong><br>
+        <code>stabilityai/stable-diffusion-3.5-medium</code><br>
+        放在 <code>ComfyUI/models/checkpoints/</code>
+      </div>
+
+      <h3>fp8 T5 編碼器</h3>
+      <div class="download-box">
+        <strong>HuggingFace:</strong><br>
+        <code>comfyanonymous/flux_text_encoders</code> → <code>t5xxl_fp8_e4m3fn.safetensors</code><br>
+        放在 <code>ComfyUI/models/text_encoders/</code>
+      </div>
+
+      <div class="callout tip">
+        <strong>💡 ComfyUI 會自動偵測</strong><br>
+        放好檔案後，重啟 ComfyUI，在 Load Checkpoint 節點的下拉選單就會看到 Medium 模型。<br>
+        T5 編碼器在 DualCLIPLoader 節點選擇。
+      </div>
+    </section>
+
+    <section id="workflow-tips">
+      <h2>🔧 工作流優化技巧</h2>
+      
+      <h3>1. 分辨率控制</h3>
+      <p>
+        VRAM 消耗與圖片分辨率成平方關係。512×512 → 1024×1024 增加 4 倍顯存。
+      </p>
+      <ul>
+        <li><strong>草稿階段:</strong> 512×512 快速迭代</li>
+        <li><strong>精修階段:</strong> 768×768 或 1024×1024</li>
+        <li><strong>高解析度:</strong> 先生成小圖 → 用 img2img upscale</li>
+      </ul>
+
+      <h3>2. Batch Size 設為 1</h3>
+      <p>
+        同時生成多張圖會線性增加 VRAM。8GB 卡建議 batch=1，
+        需要多張時用 Queue Prompt 排隊生成。
+      </p>
+
+      <h3>3. 卸載不用的模型</h3>
+      <p>
+        如果工作流同時載入多個 Checkpoint 或 LoRA，記得移除不用的節點。
+        ComfyUI 不會自動卸載未連接的模型。
+      </p>
+    </section>
+
+    <section id="monitoring">
+      <h2>📊 顯存監控</h2>
+      <p>
+        ComfyUI 終端會顯示每次生成的 VRAM 使用量。也可用系統工具：
+      </p>
+      <ul>
+        <li><strong>Windows:</strong> 工作管理員 → 效能 → GPU</li>
+        <li><strong>Linux:</strong> <code>nvidia-smi</code> 或 <code>watch -n 1 nvidia-smi</code></li>
+        <li><strong>macOS:</strong> 活動監視器 → GPU 記憶體（Apple Silicon）</li>
+      </ul>
+
+      <div class="callout warning">
+        <strong>⚠️ OOM (Out of Memory) 錯誤</strong><br>
+        如果看到 <code>CUDA out of memory</code> 或 <code>RuntimeError: ..allocate..VRAM</code>，
+        代表顯存不足。依序嘗試：<br>
+        1. 降低分辨率<br>
+        2. 用 fp8 T5<br>
+        3. 加 <code>--lowvram</code><br>
+        4. 改用 Medium 模型
+      </div>
+    </section>
+
+    <nav class="guide-nav">
+      <h2>📚 相關主題</h2>
+      <div class="nav-grid">
+        <a href="/comfyui-sd-guide/" class="nav-card">
+          <h3>🏠 回到主頁</h3>
+          <p>概覽、模型選擇、基礎參數</p>
+        </a>
+        <a href="/comfyui-sd-guide/prompting/" class="nav-card">
+          <h3>✍️ Prompting</h3>
+          <p>自然語言 prompt 寫法</p>
+        </a>
+        <a href="/comfyui-sd-guide/image-editing/" class="nav-card">
+          <h3>🖼️ 圖像編輯</h3>
+          <p>風格轉換、局部重繪、擴圖</p>
+        </a>
+      </div>
+    </nav>
+  </article>
+</BaseLayout>
+
+<style>
+  .guide {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .breadcrumb {
+    margin-bottom: 1.5rem;
+  }
+
+  .breadcrumb a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .breadcrumb a:hover {
+    color: var(--link-hover);
+  }
+
+  .guide-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .guide-header h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+  }
+
+  section {
+    margin: 3rem 0;
+  }
+
+  section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  section h3 {
+    font-size: 1.25rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border-left: 4px solid;
+  }
+
+  .callout.info {
+    background: #e0f2fe;
+    border-color: #0284c7;
+  }
+
+  .callout.tip {
+    background: #dcfce7;
+    border-color: #16a34a;
+  }
+
+  .callout.warning {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin: 2rem 0;
+  }
+
+  .strategy-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    transition: all 0.2s;
+  }
+
+  .strategy-card:hover {
+    border-color: var(--link-color);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .strategy-card h3 {
+    margin: 0 0 1rem;
+    font-size: 1.15rem;
+    color: var(--link-color);
+  }
+
+  .spec {
+    background: var(--bg-secondary);
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .desc {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  thead {
+    background: var(--bg-secondary);
+  }
+
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid var(--border);
+  }
+
+  th {
+    font-weight: 600;
+  }
+
+  tbody tr:hover {
+    background: var(--bg-secondary);
+  }
+
+  code {
+    background: var(--bg-secondary);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, monospace;
+  }
+
+  pre {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .download-box {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    line-height: 1.8;
+  }
+
+  .guide-nav {
+    margin: 4rem 0 3rem;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+  }
+
+  .guide-nav h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+  }
+
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .nav-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+  }
+
+  .nav-card:hover {
+    border-color: var(--link-hover);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+
+  .nav-card h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    color: var(--link-color);
+  }
+
+  .nav-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .strategy-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .nav-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</BaseLayout>

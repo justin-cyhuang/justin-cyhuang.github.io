@@ -1,0 +1,362 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <article class="guide">
+    <nav class="breadcrumb">
+      <a href="/comfyui-sd-guide/">← ComfyUI SD 指南</a>
+    </nav>
+
+    <header class="guide-header">
+      <h1>✍️ Prompting 技巧</h1>
+      <p class="subtitle">
+        自然語言 prompt 寫法與最佳實踐
+      </p>
+    </header>
+
+    <section id="core-principle">
+      <h2>🎯 核心原則</h2>
+      <p>
+        Stable Diffusion 3.5 使用 T5-XXL 文字編碼器，能理解完整的自然語言句子。
+        <strong>用完整句子描述場景</strong>，而非堆疊關鍵字。
+      </p>
+
+      <div class="comparison">
+        <div class="dont">
+          <h4>❌ 舊式寫法（標籤堆疊）</h4>
+          <pre><code>masterpiece, best quality, highly detailed, 8k, 
+photorealistic, portrait of a woman, blue eyes, 
+blonde hair, cinematic lighting</code></pre>
+        </div>
+        <div class="do">
+          <h4>✅ SD 3.5 寫法（自然語言）</h4>
+          <pre><code>A photorealistic portrait of a woman with 
+blue eyes and blonde hair, illuminated by 
+warm cinematic lighting from the left side</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="best-practices">
+      <h2>📝 最佳實踐</h2>
+      
+      <h3>1. 明確描述動作與視角</h3>
+      <div class="example-pair">
+        <div class="bad">
+          <strong>❌ 模糊：</strong> <code>cat sitting</code>
+        </div>
+        <div class="good">
+          <strong>✅ 明確：</strong> <code>A tabby cat sitting on a wooden windowsill, looking out at the garden</code>
+        </div>
+      </div>
+
+      <h3>2. 指定光源方向與氛圍</h3>
+      <div class="example-pair">
+        <div class="bad">
+          <strong>❌ 模糊：</strong> <code>good lighting</code>
+        </div>
+        <div class="good">
+          <strong>✅ 明確：</strong> <code>soft morning sunlight streaming through a window, creating warm highlights and long shadows</code>
+        </div>
+      </div>
+
+      <h3>3. 使用具體的形容詞</h3>
+      <div class="example-pair">
+        <div class="bad">
+          <strong>❌ 抽象：</strong> <code>beautiful landscape</code>
+        </div>
+        <div class="good">
+          <strong>✅ 具體：</strong> <code>A misty mountain valley at dawn, with pine trees silhouetted against pastel pink and orange skies</code>
+        </div>
+      </div>
+    </section>
+
+    <section id="structure">
+      <h2>🏗️ Prompt 結構建議</h2>
+      <div class="structure-template">
+        <pre><code>[主體] + [動作/狀態] + [場景/背景] + [光線/氛圍] + [視角/構圖]
+
+範例：
+A steampunk airship [主體]
+floating above [動作]
+a Victorian city at dusk [場景]
+with golden hour lighting casting long shadows [光線]
+viewed from a low angle [視角]</code></pre>
+      </div>
+    </section>
+
+    <section id="negative-prompt">
+      <h2>🚫 負面 Prompt 使用策略</h2>
+      <p>
+        SD 3.5 的負面 prompt <strong>應該簡短</strong>，甚至可以留空。
+        過長的負面 prompt 會干擾生成品質。
+      </p>
+
+      <div class="callout tip">
+        <strong>💡 推薦做法</strong><br>
+        只列出 2-5 個你最想避免的元素，例如：<br>
+        <code>blurry, watermark, text</code><br><br>
+        <strong>不要</strong>把幾十個詞塞進負面 prompt。
+      </div>
+    </section>
+
+    <section id="common-mistakes">
+      <h2>⚠️ 常見錯誤</h2>
+      <ul>
+        <li><strong>堆疊品質標籤</strong> — <code>masterpiece, best quality, ultra detailed, 8k</code> 不會提升品質，反而可能過度飽和</li>
+        <li><strong>逗號分隔關鍵字</strong> — <code>girl, red dress, garden, sunset</code> 缺乏語義連貫性</li>
+        <li><strong>過長負面 prompt</strong> — 超過 20 個詞的負面 prompt 會降低主 prompt 的控制力</li>
+        <li><strong>使用 LoRA 觸發詞</strong> — SD 3.5 的 LoRA 生態還在早期，舊版觸發詞可能無效</li>
+      </ul>
+    </section>
+
+    <section id="examples">
+      <h2>📸 實戰範例</h2>
+      
+      <div class="example-box">
+        <h4>風景攝影</h4>
+        <pre><code>A serene Japanese garden in autumn, with a wooden bridge 
+over a koi pond, surrounded by maple trees in brilliant red 
+and orange. Soft overcast lighting creates even illumination 
+without harsh shadows. Shot with a wide-angle lens from 
+ground level.</code></pre>
+      </div>
+
+      <div class="example-box">
+        <h4>人物肖像</h4>
+        <pre><code>A portrait of an elderly craftsman in his workshop, hands 
+covered in clay, focused on shaping a pottery piece on a 
+spinning wheel. Warm tungsten light from a desk lamp creates 
+dramatic side lighting. Shallow depth of field with the 
+background softly blurred.</code></pre>
+      </div>
+
+      <div class="example-box">
+        <h4>概念藝術</h4>
+        <pre><code>A bioluminescent forest at night, with giant mushrooms 
+emitting soft blue and green light. A narrow path winds 
+through the scene, covered in glowing moss. Mist drifts 
+between the trees, creating an ethereal atmosphere. 
+Viewed from a first-person perspective.</code></pre>
+      </div>
+    </section>
+
+    <nav class="guide-nav">
+      <h2>📚 相關主題</h2>
+      <div class="nav-grid">
+        <a href="/comfyui-sd-guide/" class="nav-card">
+          <h3>🏠 回到主頁</h3>
+          <p>概覽、模型選擇、基礎參數設定</p>
+        </a>
+        <a href="/comfyui-sd-guide/image-editing/" class="nav-card">
+          <h3>🖼️ 圖像編輯</h3>
+          <p>風格轉換、局部重繪、擴圖技巧</p>
+        </a>
+        <a href="/comfyui-sd-guide/controlnet/" class="nav-card">
+          <h3>🎮 ControlNet</h3>
+          <p>結構化控制生成結果</p>
+        </a>
+      </div>
+    </nav>
+  </article>
+</BaseLayout>
+
+<style>
+  .guide {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .breadcrumb {
+    margin-bottom: 1.5rem;
+  }
+
+  .breadcrumb a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .breadcrumb a:hover {
+    color: var(--link-hover);
+  }
+
+  .guide-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .guide-header h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+  }
+
+  section {
+    margin: 3rem 0;
+  }
+
+  section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  section h3 {
+    font-size: 1.25rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  pre {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+  }
+
+  code {
+    background: var(--bg-secondary);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, monospace;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .do, .dont {
+    padding: 1rem;
+    border-radius: 6px;
+  }
+
+  .do {
+    background: #dcfce7;
+    border: 2px solid #16a34a;
+  }
+
+  .dont {
+    background: #fee2e2;
+    border: 2px solid #dc2626;
+  }
+
+  .do h4, .dont h4 {
+    margin: 0 0 0.75rem;
+  }
+
+  .example-pair {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+  }
+
+  .example-pair .bad,
+  .example-pair .good {
+    margin: 0.5rem 0;
+  }
+
+  .structure-template {
+    margin: 1.5rem 0;
+  }
+
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border-left: 4px solid;
+  }
+
+  .callout.tip {
+    background: #dcfce7;
+    border-color: #16a34a;
+  }
+
+  .example-box {
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 4px solid var(--link-color);
+  }
+
+  .example-box h4 {
+    margin: 0 0 0.75rem;
+    color: var(--link-color);
+  }
+
+  .guide-nav {
+    margin: 4rem 0 3rem;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+  }
+
+  .guide-nav h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+  }
+
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .nav-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+  }
+
+  .nav-card:hover {
+    border-color: var(--link-hover);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+
+  .nav-card h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    color: var(--link-color);
+  }
+
+  .nav-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .comparison {
+      grid-template-columns: 1fr;
+    }
+
+    .nav-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</BaseLayout>

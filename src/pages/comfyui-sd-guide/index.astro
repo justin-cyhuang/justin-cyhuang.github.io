@@ -1,0 +1,348 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <article class="guide">
+    <header class="guide-header">
+      <h1>🎨 ComfyUI Stable Diffusion 使用指南</h1>
+      <p class="subtitle">
+        完整的工作流程、最佳實踐與進階技巧
+      </p>
+      <p class="meta">
+        <span class="version">當前版本：Stable Diffusion 3.5</span> · 
+        <span class="updated">最後更新：2026-06-04</span>
+      </p>
+    </header>
+
+    <section id="overview">
+      <h2>📋 概覽</h2>
+      <p>
+        本指南涵蓋在 ComfyUI 中使用 Stable Diffusion 3.5 的完整工作流程。
+        SD 3.5 是目前最新版本，帶來三個核心改進：
+      </p>
+      <ul>
+        <li><strong>T5-XXL 文字編碼器</strong> — 理解完整自然語言句子，不再需要堆疊標籤</li>
+        <li><strong>更低的 CFG 需求</strong> — 3.5-5.0 即可達到最佳效果</li>
+        <li><strong>三種模型規格</strong> — Large (8B) / Medium (2.5B) / Turbo (8B 4-step)</li>
+      </ul>
+      
+      <div class="callout info">
+        <strong>💡 核心認知</strong><br>
+        SD 3.5 採用全新架構。如果你習慣用高 CFG、堆疊關鍵字的方式，
+        在 SD 3.5 會得到過度飽和、細節丟失的結果。請務必閱讀 <a href="/comfyui-sd-guide/prompting/">Prompting 指南</a>。
+      </div>
+    </section>
+
+    <section id="models">
+      <h2>🗂️ 模型選擇</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>參數量</th>
+            <th>適用場景</th>
+            <th>VRAM 需求</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sd3.5_large.safetensors</code></td>
+            <td>8B</td>
+            <td>高品質創作、藝術風格、複雜構圖</td>
+            <td>~12GB (fp16)</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_large_turbo.safetensors</code></td>
+            <td>8B</td>
+            <td>快速迭代、概念測試（4 steps）</td>
+            <td>~12GB (fp16)</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_medium.safetensors</code></td>
+            <td>2.5B</td>
+            <td>日常生成、批次處理、VRAM 受限</td>
+            <td>~6GB (fp16)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>💾 T5-XXL 編碼器優化</strong><br>
+        T5-XXL 本體佔 9.5GB VRAM。可用 <code>t5xxl_fp8_e4m3fn.safetensors</code> (4.7GB) 替代，
+        幾乎無品質損失。放在 <code>ComfyUI/models/text_encoders/</code>。
+        詳見 <a href="/comfyui-sd-guide/optimization/">VRAM 優化指南</a>。
+      </div>
+    </section>
+
+    <section id="parameters">
+      <h2>⚙️ 關鍵參數設定</h2>
+      
+      <h3>CFG Scale (Guidance Scale)</h3>
+      <table>
+        <thead>
+          <tr><th>模型</th><th>推薦範圍</th><th>說明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Large</td><td>3.5 - 5.0</td><td>預設 4.5，高於 6 會過度飽和</td></tr>
+          <tr><td>Turbo</td><td>1.0</td><td>固定值，蒸餾模型不需引導</td></tr>
+          <tr><td>Medium</td><td>4.0 - 5.0</td><td>略高於 Large</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Sampler & Scheduler</h3>
+      <div class="code-block">
+        <strong>推薦組合：</strong>
+        <pre><code>Sampler: euler 或 dpmpp_2m
+Scheduler: sgm_uniform
+Steps: 28-30 (Large) / 25-28 (Medium) / 4 (Turbo)</code></pre>
+      </div>
+
+      <div class="callout warning">
+        <strong>⚠️ 避免使用舊版排程器</strong><br>
+        <code>karras</code> / <code>exponential</code> 會產生色偏和細節崩壞。
+        務必使用 <code>sgm_uniform</code>。
+      </div>
+    </section>
+
+    <nav class="guide-nav">
+      <h2>📚 深入主題</h2>
+      <div class="nav-grid">
+        <a href="/comfyui-sd-guide/prompting/" class="nav-card">
+          <h3>✍️ Prompting 技巧</h3>
+          <p>自然語言 prompt 寫法、負面 prompt 使用策略、常見錯誤避免</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/image-editing/" class="nav-card">
+          <h3>🖼️ 圖像編輯</h3>
+          <p>img2img 風格轉換、inpainting 局部重繪、outpainting 擴圖技巧</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/controlnet/" class="nav-card">
+          <h3>🎮 ControlNet 引導</h3>
+          <p>邊緣線、深度圖、骨架姿勢控制，保留構圖改變風格</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/optimization/" class="nav-card">
+          <h3>💾 VRAM 優化</h3>
+          <p>4 種優化方案，從 16GB 降到 8GB，適配不同顯卡</p>
+        </a>
+      </div>
+    </nav>
+
+    <footer class="guide-footer">
+      <p>
+        <strong>參考資料：</strong>
+        <a href="https://huggingface.co/stabilityai/stable-diffusion-3.5-large" target="_blank">Stability AI HuggingFace</a> ·
+        <a href="https://comfyanonymous.github.io/ComfyUI_examples/sd3/" target="_blank">ComfyUI Examples</a>
+      </p>
+      <p class="source">
+        本指南由 Hermes Agent 協助研究與整理。
+      </p>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .guide {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .guide-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .guide-header h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .meta {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .version {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  section {
+    margin: 3rem 0;
+  }
+
+  section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    padding-top: 1rem;
+  }
+
+  section h3 {
+    font-size: 1.25rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+
+  thead {
+    background: var(--bg-secondary);
+  }
+
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid var(--border);
+  }
+
+  th {
+    font-weight: 600;
+  }
+
+  tbody tr:hover {
+    background: var(--bg-secondary);
+  }
+
+  code {
+    background: var(--bg-secondary);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+  }
+
+  pre {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 1rem 0;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border-left: 4px solid;
+  }
+
+  .callout a {
+    color: inherit;
+    text-decoration: underline;
+    font-weight: 600;
+  }
+
+  .callout.info {
+    background: #e0f2fe;
+    border-color: #0284c7;
+  }
+
+  .callout.tip {
+    background: #dcfce7;
+    border-color: #16a34a;
+  }
+
+  .callout.warning {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+
+  .code-block {
+    margin: 1rem 0;
+  }
+
+  .guide-nav {
+    margin: 4rem 0 3rem;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+  }
+
+  .guide-nav h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+  }
+
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .nav-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+  }
+
+  .nav-card:hover {
+    border-color: var(--link-hover);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+
+  .nav-card h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+    color: var(--link-color);
+  }
+
+  .nav-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .guide-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .guide-footer p {
+    margin: 0.5rem 0;
+  }
+
+  .source {
+    font-style: italic;
+  }
+
+  @media (max-width: 768px) {
+    .guide-header h1 {
+      font-size: 1.75rem;
+    }
+
+    .nav-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</BaseLayout>

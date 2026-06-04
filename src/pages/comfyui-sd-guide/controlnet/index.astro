@@ -1,0 +1,424 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <article class="guide">
+    <nav class="breadcrumb">
+      <a href="/comfyui-sd-guide/">← ComfyUI SD 指南</a>
+    </nav>
+
+    <header class="guide-header">
+      <h1>🎮 ControlNet 引導</h1>
+      <p class="subtitle">
+        用邊緣線、深度圖、骨架姿勢控制生成結果
+      </p>
+    </header>
+
+    <section id="overview">
+      <h2>📋 什麼是 ControlNet？</h2>
+      <p>
+        ControlNet 讓你用結構化資訊（邊緣線、深度圖、骨架等）引導 AI 生成，
+        在保留構圖的前提下改變風格或內容。
+      </p>
+      <p>
+        <strong>典型使用場景：</strong>
+      </p>
+      <ul>
+        <li>線稿上色 — 用 Canny 邊緣檢測</li>
+        <li>3D 模型轉真實照片 — 用 Depth 深度圖</li>
+        <li>保留人物姿勢換風格 — 用 Pose 骨架</li>
+        <li>建築圖重繪 — 用 Canny 或 Depth</li>
+      </ul>
+    </section>
+
+    <section id="models">
+      <h2>🗂️ 官方支援模型</h2>
+      <table>
+        <thead>
+          <tr><th>模型</th><th>用途</th><th>適用場景</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sd3.5_controlnet_canny</code></td>
+            <td>邊緣檢測</td>
+            <td>線稿上色、建築圖重繪、保留輪廓</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_controlnet_depth</code></td>
+            <td>深度圖引導</td>
+            <td>3D 模型轉真實、保留空間關係</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_controlnet_blur</code></td>
+            <td>模糊圖引導</td>
+            <td>保留大致構圖的風格化</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <strong>📦 社群模型</strong><br>
+        InstantX 團隊提供 OpenPose 骨架模型：<br>
+        <code>instantx/sd3.5-controlnet-openpose</code> (HuggingFace)<br>
+        用於保留人物姿勢，改變服裝、風格或背景。
+      </div>
+    </section>
+
+    <section id="canny">
+      <h2>✏️ Canny — 邊緣檢測</h2>
+      <p>
+        Canny 提取圖片的邊緣線條，適合線稿上色或保留輪廓重繪。
+      </p>
+
+      <h3>ComfyUI 工作流</h3>
+      <div class="workflow">
+        <pre><code>LoadImage → CannyEdgePreprocessor (閾值 100-200)
+              ↓
+         ControlNetApply (strength=0.8)
+              ↓
+         KSampler + 你的 prompt → VAEDecode → SaveImage</code></pre>
+      </div>
+
+      <h3>參數調整</h3>
+      <ul>
+        <li><strong>低閾值 (50-100)</strong> — 提取更多細節線條，適合複雜場景</li>
+        <li><strong>高閾值 (150-250)</strong> — 只保留主要輪廓，適合簡化風格</li>
+      </ul>
+
+      <div class="example-box">
+        <h4>實戰範例：線稿上色</h4>
+        <ol>
+          <li>上傳黑白線稿</li>
+          <li>用 Canny 提取邊緣（閾值 100/200）</li>
+          <li>Prompt：<code>A watercolor painting of a garden with vibrant flowers</code></li>
+          <li>ControlNet strength: 0.9（嚴格遵守線稿）</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="depth">
+      <h2>🌐 Depth — 深度圖引導</h2>
+      <p>
+        深度圖記錄場景中物體的遠近關係，適合 3D 模型轉真實照片、
+        或在保留空間結構的前提下改變材質和光影。
+      </p>
+
+      <h3>ComfyUI 工作流</h3>
+      <div class="workflow">
+        <pre><code>LoadImage → MiDaS Depth Estimator (生成深度圖)
+              ↓
+         ControlNetApply (strength=0.7-0.9)
+              ↓
+         KSampler + 你的 prompt → VAEDecode</code></pre>
+      </div>
+
+      <h3>適用場景</h3>
+      <ul>
+        <li><strong>3D 渲染轉照片</strong> — Blender/Maya 輸出 → 真實材質</li>
+        <li><strong>改變室內設計風格</strong> — 保留空間布局，換家具材質</li>
+        <li><strong>風景照風格轉換</strong> — 保留山脈輪廓，改變季節氛圍</li>
+      </ul>
+
+      <div class="callout tip">
+        <strong>💡 深度圖來源</strong><br>
+        如果你有 3D 場景，直接從渲染器輸出深度通道（Z-depth）品質最高。<br>
+        沒有的話，用 MiDaS 或 ZoeDepth 從照片估算深度圖。
+      </div>
+    </section>
+
+    <section id="pose">
+      <h2>🤸 OpenPose — 骨架姿勢</h2>
+      <p>
+        OpenPose 提取人物的骨架關鍵點（頭、肩、肘、膝等），
+        讓 AI 保留姿勢的同時改變服裝、風格、背景。
+      </p>
+
+      <h3>ComfyUI 工作流</h3>
+      <div class="workflow">
+        <pre><code>LoadImage → OpenPose Estimator (生成骨架圖)
+              ↓
+         Load InstantX ControlNet Model
+              ↓
+         ControlNetApply (strength=0.7-0.9)
+              ↓
+         KSampler + 描述新服裝/風格 → VAEDecode</code></pre>
+      </div>
+
+      <h3>典型用途</h3>
+      <ul>
+        <li><strong>虛擬試衣</strong> — 保留模特姿勢，換不同服裝</li>
+        <li><strong>風格轉換</strong> — 真人照片 → 動漫角色（同姿勢）</li>
+        <li><strong>概念設計</strong> — 快速測試不同服飾搭配</li>
+      </ul>
+
+      <div class="example-box">
+        <h4>實戰範例：服裝替換</h4>
+        <ol>
+          <li>上傳原始照片（例：白 T 恤牛仔褲）</li>
+          <li>OpenPose 提取骨架</li>
+          <li>Prompt：<code>A person wearing an elegant evening gown in deep red</code></li>
+          <li>ControlNet strength: 0.85</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="strength">
+      <h2>⚙️ Conditioning Strength 調整</h2>
+      <p>
+        <strong>Strength</strong> 參數控制 ControlNet 的引導強度：
+      </p>
+      <table>
+        <thead>
+          <tr><th>Strength</th><th>效果</th><th>適用場景</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0.5 - 0.6</td><td>輕度引導，允許大幅創意變化</td><td>藝術創作、風格實驗</td></tr>
+          <tr><td>0.7 - 0.8</td><td>平衡引導與創意</td><td>一般用途、服裝替換</td></tr>
+          <tr><td>0.9 - 1.0</td><td>嚴格遵守結構</td><td>建築圖、技術繪圖、線稿上色</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <strong>⚠️ 過高 Strength 的問題</strong><br>
+        Strength=1.0 時，AI 可能過度拘泥於控制圖，導致細節僵硬、缺乏自然感。<br>
+        建議從 0.8 開始測試，視覺效果不夠再往上調。
+      </div>
+    </section>
+
+    <section id="multi-controlnet">
+      <h2>🔗 多重 ControlNet 組合</h2>
+      <p>
+        可以同時使用多個 ControlNet，例如：<br>
+        <strong>Canny（輪廓） + Depth（空間） → 雙重約束</strong>
+      </p>
+
+      <div class="workflow">
+        <pre><code>LoadImage → Canny Preprocessor → ControlNetApply (strength=0.6)
+              ↓
+          MiDaS Depth → ControlNetApply (strength=0.5)
+              ↓
+          KSampler → VAEDecode</code></pre>
+      </div>
+
+      <div class="callout tip">
+        <strong>💡 Strength 分配策略</strong><br>
+        多 ControlNet 時，總 Strength 不要超過 1.5-1.8，否則過度約束會抑制 AI 創意。<br>
+        例如：Canny=0.7 + Depth=0.6 = 1.3（合理範圍）
+      </div>
+    </section>
+
+    <nav class="guide-nav">
+      <h2>📚 相關主題</h2>
+      <div class="nav-grid">
+        <a href="/comfyui-sd-guide/" class="nav-card">
+          <h3>🏠 回到主頁</h3>
+          <p>概覽、模型選擇、基礎參數</p>
+        </a>
+        <a href="/comfyui-sd-guide/prompting/" class="nav-card">
+          <h3>✍️ Prompting</h3>
+          <p>自然語言 prompt 寫法</p>
+        </a>
+        <a href="/comfyui-sd-guide/image-editing/" class="nav-card">
+          <h3>🖼️ 圖像編輯</h3>
+          <p>風格轉換、局部重繪、擴圖</p>
+        </a>
+      </div>
+    </nav>
+  </article>
+</BaseLayout>
+
+<style>
+  .guide {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .breadcrumb {
+    margin-bottom: 1.5rem;
+  }
+
+  .breadcrumb a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .breadcrumb a:hover {
+    color: var(--link-hover);
+  }
+
+  .guide-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .guide-header h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+  }
+
+  section {
+    margin: 3rem 0;
+  }
+
+  section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  section h3 {
+    font-size: 1.25rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+
+  thead {
+    background: var(--bg-secondary);
+  }
+
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid var(--border);
+  }
+
+  th {
+    font-weight: 600;
+  }
+
+  tbody tr:hover {
+    background: var(--bg-secondary);
+  }
+
+  code {
+    background: var(--bg-secondary);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, monospace;
+  }
+
+  pre {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .workflow {
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 4px solid var(--link-color);
+  }
+
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border-left: 4px solid;
+  }
+
+  .callout.info {
+    background: #e0f2fe;
+    border-color: #0284c7;
+  }
+
+  .callout.tip {
+    background: #dcfce7;
+    border-color: #16a34a;
+  }
+
+  .callout.warning {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+
+  .example-box {
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 4px solid var(--link-color);
+  }
+
+  .example-box h4 {
+    margin: 0 0 0.75rem;
+    color: var(--link-color);
+  }
+
+  .guide-nav {
+    margin: 4rem 0 3rem;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+  }
+
+  .guide-nav h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+  }
+
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .nav-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+  }
+
+  .nav-card:hover {
+    border-color: var(--link-hover);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+
+  .nav-card h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    color: var(--link-color);
+  }
+
+  .nav-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .nav-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</BaseLayout>
