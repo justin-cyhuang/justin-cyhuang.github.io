@@ -1,0 +1,571 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <article class="guide">
+    <header class="guide-header">
+      <h1>🎨 Stable Diffusion 3.5 ComfyUI 使用指南</h1>
+      <p class="subtitle">
+        從 SDXL 遷移到 SD 3.5 的完整設定與最佳實踐
+      </p>
+      <p class="updated">最後更新：2026-06-04</p>
+    </header>
+
+    <nav class="toc">
+      <h2>目錄</h2>
+      <ul>
+        <li><a href="#overview">概覽</a></li>
+        <li><a href="#models">模型選擇</a></li>
+        <li><a href="#prompting">Prompting 技巧</a></li>
+        <li><a href="#parameters">關鍵參數設定</a></li>
+        <li><a href="#img2img">圖像編輯 (img2img)</a></li>
+        <li><a href="#inpainting">局部重繪 (Inpainting)</a></li>
+        <li><a href="#outpainting">擴圖 (Outpainting)</a></li>
+        <li><a href="#controlnet">ControlNet 引導</a></li>
+        <li><a href="#optimization">VRAM 優化</a></li>
+      </ul>
+    </nav>
+
+    <section id="overview">
+      <h2>📋 概覽</h2>
+      <p>
+        Stable Diffusion 3.5 是 Stability AI 於 2024 年 10 月發布的最新版本，
+        帶來三個核心改進：
+      </p>
+      <ul>
+        <li><strong>T5-XXL 文字編碼器</strong> — 理解完整自然語言句子，不再需要堆疊標籤式 prompt</li>
+        <li><strong>更低的 CFG 需求</strong> — 從 SDXL 的 7-8 降到 3.5-5.0，減少過度引導</li>
+        <li><strong>三種模型規格</strong> — Large (8B) / Medium (2.5B) / Turbo (8B 4-step) 適應不同場景</li>
+      </ul>
+      
+      <div class="callout info">
+        <strong>💡 核心認知轉變</strong><br>
+        SD 3.5 不是「SDXL 的升級版」，而是架構重寫。如果你用 SDXL 的習慣（高 CFG、標籤堆疊、複雜 LoRA）
+        套用到 SD 3.5，反而會得到過度飽和、細節丟失的結果。
+      </div>
+    </section>
+
+    <section id="models">
+      <h2>🗂️ 模型選擇</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>參數量</th>
+            <th>適用場景</th>
+            <th>VRAM 需求</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sd3.5_large.safetensors</code></td>
+            <td>8B</td>
+            <td>高品質創作、藝術風格、複雜構圖</td>
+            <td>~12GB (fp16)</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_large_turbo.safetensors</code></td>
+            <td>8B</td>
+            <td>快速迭代、概念測試（4 steps）</td>
+            <td>~12GB (fp16)</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_medium.safetensors</code></td>
+            <td>2.5B</td>
+            <td>日常生成、批次處理、VRAM 受限</td>
+            <td>~6GB (fp16)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>💾 T5-XXL 編碼器優化</strong><br>
+        T5-XXL 本體佔 9.5GB VRAM。可用 <code>t5xxl_fp8_e4m3fn.safetensors</code> (4.7GB) 替代，
+        幾乎無品質損失。下載後放在 <code>ComfyUI/models/text_encoders/</code>。
+      </div>
+    </section>
+
+    <section id="prompting">
+      <h2>✍️ Prompting 技巧</h2>
+      
+      <h3>❌ SDXL 風格（不適用）</h3>
+      <pre><code>masterpiece, best quality, highly detailed, 8k, photorealistic, 
+portrait of a woman, blue eyes, blonde hair, cinematic lighting</code></pre>
+
+      <h3>✅ SD 3.5 風格（推薦）</h3>
+      <pre><code>A photorealistic portrait of a woman with blue eyes and blonde hair, 
+illuminated by warm cinematic lighting from the left side</code></pre>
+
+      <div class="comparison">
+        <div class="do">
+          <h4>✅ 正確做法</h4>
+          <ul>
+            <li>用完整句子描述場景</li>
+            <li>明確的動作、視角、光源方向</li>
+            <li>自然語言：「A bustling Tokyo street at night」</li>
+            <li>負面 prompt 簡短或留空</li>
+          </ul>
+        </div>
+        <div class="dont">
+          <h4>❌ 避免</h4>
+          <ul>
+            <li>堆疊品質標籤（masterpiece, 8k, ultra detailed）</li>
+            <li>逗號分隔的關鍵字列表</li>
+            <li>過長的負面 prompt（>20 詞）</li>
+            <li>SDXL 時代的 LoRA 觸發詞</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="parameters">
+      <h2>⚙️ 關鍵參數設定</h2>
+      
+      <h3>CFG Scale (Guidance Scale)</h3>
+      <table>
+        <thead>
+          <tr><th>模型</th><th>推薦範圍</th><th>說明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Large</td><td>3.5 - 5.0</td><td>預設 4.5，高於 6 會過度飽和</td></tr>
+          <tr><td>Turbo</td><td>1.0</td><td>固定值，蒸餾模型不需引導</td></tr>
+          <tr><td>Medium</td><td>4.0 - 5.0</td><td>略高於 Large，補償參數量差距</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Sampler & Scheduler</h3>
+      <div class="code-block">
+        <strong>推薦組合：</strong>
+        <pre><code>Sampler: euler 或 dpmpp_2m
+Scheduler: sgm_uniform
+Steps: 28-30 (Large) / 25-28 (Medium) / 4 (Turbo)</code></pre>
+      </div>
+
+      <div class="callout warning">
+        <strong>⚠️ 不要用 SDXL 的排程器</strong><br>
+        <code>karras</code> / <code>exponential</code> 會在 SD 3.5 產生色偏和細節崩壞。
+        務必切換到 <code>sgm_uniform</code>。
+      </div>
+    </section>
+
+    <section id="img2img">
+      <h2>🖼️ 圖像編輯 (img2img)</h2>
+      <p>
+        img2img 模式用於：風格轉換、細節增強、構圖調整。核心參數是 <code>denoise</code>（去噪強度）。
+      </p>
+
+      <h3>Denoise 參數分級表</h3>
+      <table>
+        <thead>
+          <tr><th>Denoise</th><th>效果</th><th>適用場景</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0.0 - 0.3</td><td>細節增強，幾乎不改變構圖</td><td>銳化、提升解析度</td></tr>
+          <tr><td>0.4 - 0.5</td><td>輕微風格調整</td><td>色調校正、光影微調</td></tr>
+          <tr><td>0.6 - 0.75</td><td><strong>風格轉換</strong></td><td>照片轉油畫、寫實轉動漫</td></tr>
+          <tr><td>0.8 - 1.0</td><td>完全重繪</td><td>僅保留大致構圖</td></tr>
+        </tbody>
+      </table>
+
+      <div class="workflow">
+        <h4>基礎 img2img 工作流</h4>
+        <pre><code>LoadImage → VAEEncode → KSampler (denoise=0.7) → VAEDecode → SaveImage
+                             ↑
+                    CLIPTextEncode (新 prompt)</code></pre>
+      </div>
+    </section>
+
+    <section id="inpainting">
+      <h2>🎭 局部重繪 (Inpainting)</h2>
+      <p>
+        <strong>重要：</strong>SD 3.5 沒有官方 inpainting 專用模型，使用基礎模型 + 
+        <code>VAEEncodeForInpaint</code> 節點即可達到高品質局部重繪。
+      </p>
+
+      <h3>遮罩繪製工具</h3>
+      <ul>
+        <li><strong>ComfyUI 內建</strong> — LoadImage 節點的遮罩編輯器（滑鼠繪製）</li>
+        <li><strong>外部工具</strong> — Photoshop / GIMP（黑底白筆，存為 PNG）</li>
+        <li><strong>SAM 自動遮罩</strong> — 用 Segment Anything Model 一鍵框選物體</li>
+      </ul>
+
+      <div class="workflow">
+        <h4>Inpainting 工作流</h4>
+        <pre><code>LoadImage (帶遮罩) → VAEEncodeForInpaint → KSampler → VAEDecode
+                                      ↑
+                         CLIPTextEncode (想改成什麼)</code></pre>
+      </div>
+
+      <div class="callout tip">
+        <strong>💡 邊緣羽化技巧</strong><br>
+        遮罩邊緣用 Gaussian Blur (半徑 5-10px) 可讓修改區域無縫融合。
+        ComfyUI 可用 <code>GrowMask</code> + <code>FeatherMask</code> 節點自動處理。
+      </div>
+    </section>
+
+    <section id="outpainting">
+      <h2>🖼️ 擴圖 (Outpainting)</h2>
+      <p>
+        在原圖四周擴展畫布，讓 AI 補全周圍內容。適合：16:9 裁切變橫幅、人像加背景。
+      </p>
+
+      <h3>標準流程</h3>
+      <ol>
+        <li><strong>Pad Image</strong> — 四周加黑邊（例：上下各加 256px）</li>
+        <li><strong>創建遮罩</strong> — 原圖區域=黑，新增區域=白</li>
+        <li><strong>羽化邊緣</strong> — 原圖與擴展區交界處模糊 15-25px</li>
+        <li><strong>Inpaint</strong> — 用原圖 prompt 生成擴展內容</li>
+      </ol>
+
+      <div class="code-block">
+        <strong>ComfyUI 節點組合：</strong>
+        <pre><code>ImagePad → SetLatentNoiseMask → KSampler (denoise=0.9-1.0)</code></pre>
+      </div>
+    </section>
+
+    <section id="controlnet">
+      <h2>🎮 ControlNet 引導</h2>
+      <p>
+        ControlNet 讓你用邊緣線、深度圖、骨架姿勢等結構資訊控制生成結果，
+        保留構圖的同時改變風格或內容。
+      </p>
+
+      <h3>官方支援模型</h3>
+      <table>
+        <thead>
+          <tr><th>模型</th><th>用途</th><th>適用場景</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sd3.5_controlnet_canny</code></td>
+            <td>邊緣檢測</td>
+            <td>線稿上色、建築圖重繪</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_controlnet_depth</code></td>
+            <td>深度圖引導</td>
+            <td>3D 模型轉真實照片</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_controlnet_blur</code></td>
+            <td>模糊圖引導</td>
+            <td>保留大致構圖的風格化</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <strong>📦 社群模型</strong><br>
+        InstantX 團隊提供 Pose (OpenPose) 模型：
+        <code>instantx/sd3.5-controlnet-openpose</code> (HuggingFace)
+      </div>
+
+      <h3>Conditioning Strength</h3>
+      <ul>
+        <li><strong>0.5-0.7</strong> — 輕度引導，允許創意變化</li>
+        <li><strong>0.8-1.0</strong> — 嚴格遵守結構（建築圖、技術繪圖）</li>
+      </ul>
+    </section>
+
+    <section id="optimization">
+      <h2>💾 VRAM 優化</h2>
+      
+      <h3>顯存佔用分析 (fp16 Large 模型)</h3>
+      <ul>
+        <li>SD 3.5 Large UNet: ~4.5GB</li>
+        <li>T5-XXL 文字編碼器: ~9.5GB</li>
+        <li>CLIP-L + CLIP-G: ~2.5GB</li>
+        <li>VAE: ~0.3GB</li>
+        <li><strong>總計：~16.8GB</strong></li>
+      </ul>
+
+      <h3>優化方案</h3>
+      <div class="optimization-grid">
+        <div class="opt-card">
+          <h4>方案 A：用 Medium 模型</h4>
+          <pre><code>sd3.5_medium.safetensors
+→ 省 6GB (UNet 降到 2.5B)</code></pre>
+        </div>
+        <div class="opt-card">
+          <h4>方案 B：T5 降精度</h4>
+          <pre><code>t5xxl_fp8_e4m3fn.safetensors
+→ 省 5GB (9.5GB → 4.7GB)</code></pre>
+        </div>
+        <div class="opt-card">
+          <h4>方案 C：啟動參數</h4>
+          <pre><code>python main.py --lowvram
+→ 模型分段載入 (慢 15-20%)</code></pre>
+        </div>
+        <div class="opt-card">
+          <h4>方案 D：組合拳 (8GB 卡)</h4>
+          <pre><code>Medium + fp8 T5 + --lowvram
+→ 可在 8GB 卡運行</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <footer class="guide-footer">
+      <p>
+        <strong>參考資料：</strong>
+        <a href="https://huggingface.co/stabilityai/stable-diffusion-3.5-large" target="_blank">Stability AI HuggingFace</a> ·
+        <a href="https://comfyanonymous.github.io/ComfyUI_examples/sd3/" target="_blank">ComfyUI Examples</a>
+      </p>
+      <p class="source">
+        本指南基於 Obsidian Knowledge Base 筆記整理，由 Hermes Agent 協助研究與排版。
+      </p>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .guide {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .guide-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .guide-header h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .updated {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .toc {
+    background: var(--bg-secondary);
+    padding: 1.25rem 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+  }
+
+  .toc h2 {
+    font-size: 1rem;
+    margin: 0 0 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .toc ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .toc a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .toc a:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+  }
+
+  section {
+    margin: 3rem 0;
+  }
+
+  section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    padding-top: 1rem;
+  }
+
+  section h3 {
+    font-size: 1.25rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  section h4 {
+    font-size: 1.05rem;
+    margin: 1rem 0 0.5rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+
+  thead {
+    background: var(--bg-secondary);
+  }
+
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid var(--border);
+  }
+
+  th {
+    font-weight: 600;
+  }
+
+  tbody tr:hover {
+    background: var(--bg-secondary);
+  }
+
+  code {
+    background: var(--bg-secondary);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  }
+
+  pre {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 1rem 0;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border-left: 4px solid;
+  }
+
+  .callout.info {
+    background: #e0f2fe;
+    border-color: #0284c7;
+  }
+
+  .callout.tip {
+    background: #dcfce7;
+    border-color: #16a34a;
+  }
+
+  .callout.warning {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .do, .dont {
+    padding: 1rem;
+    border-radius: 6px;
+  }
+
+  .do {
+    background: #dcfce7;
+    border: 2px solid #16a34a;
+  }
+
+  .dont {
+    background: #fee2e2;
+    border: 2px solid #dc2626;
+  }
+
+  .do h4, .dont h4 {
+    margin-top: 0;
+  }
+
+  .workflow {
+    background: var(--bg-secondary);
+    padding: 1.25rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+  }
+
+  .workflow h4 {
+    margin-top: 0;
+    font-size: 1rem;
+  }
+
+  .code-block {
+    margin: 1rem 0;
+  }
+
+  .optimization-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .opt-card {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .opt-card h4 {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .opt-card pre {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+
+  .guide-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .guide-footer p {
+    margin: 0.5rem 0;
+  }
+
+  .source {
+    font-style: italic;
+  }
+
+  @media (max-width: 768px) {
+    .guide-header h1 {
+      font-size: 1.75rem;
+    }
+
+    .comparison {
+      grid-template-columns: 1fr;
+    }
+
+    .toc ul {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</BaseLayout>
