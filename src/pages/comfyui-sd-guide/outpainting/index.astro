@@ -1,0 +1,783 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+<BaseLayout 
+  title="SD3.5 擴圖 (Outpainting) 完整指南 | Justin's Workshop"
+  description="ComfyUI SD3.5 擴圖技術完整教學，包含節點配置、參數調整、Hololive 角色 prompt 範例"
+>
+
+<div class="guide">
+  <!-- 麵包屑 -->
+  <nav class="breadcrumb">
+    <a href="/">首頁</a> / 
+    <a href="/comfyui-sd-guide/">ComfyUI SD 指南</a> / 
+    擴圖 (Outpainting)
+  </nav>
+
+  <!-- 標題區 -->
+  <header class="guide-header">
+    <h1>🖼️ SD3.5 擴圖 (Outpainting) 完整指南</h1>
+    <p class="subtitle">
+      從原始圖片向外延伸，生成更廣闊的場景
+    </p>
+  </header>
+
+  <!-- 概述 -->
+  <section>
+    <h2>什麼是擴圖？</h2>
+    <p>
+      <strong>擴圖（Outpainting）</strong>是一種圖像生成技術，能將現有圖片向上下左右延伸，
+      自動生成合理的背景和場景延續，讓狹窄的構圖變成廣角全景。
+    </p>
+    
+    <div class="callout info">
+      <strong>💡 與 Inpainting 的差異</strong><br>
+      • <strong>Inpainting</strong>：修改圖片「內部」區域，保持尺寸不變<br>
+      • <strong>Outpainting</strong>：向「外部」擴展畫布，增加圖片尺寸
+    </div>
+  </section>
+
+  <!-- 技術配置 -->
+  <section>
+    <h2>一、ComfyUI 節點配置</h2>
+
+    <h3>方法 1: Pad Image for Outpainting（推薦入門）</h3>
+    <p>這是 ComfyUI 內建的擴圖節點，操作直覺簡單。</p>
+
+    <h4>基本工作流程</h4>
+    <pre><code>Load Image
+  ↓
+Pad Image for Outpainting
+  ├─ left: 向左擴展像素數（例如 512）
+  ├─ right: 向右擴展像素數
+  ├─ top: 向上擴展像素數
+  ├─ bottom: 向下擴展像素數
+  └─ feathering: 邊緣羽化（40-80）
+  ↓
+Load Checkpoint (SD3.5 模型)
+  ↓
+CLIP Text Encode (正面 prompt)
+  ↓
+CLIP Text Encode (負面 prompt)
+  ↓
+KSampler
+  ├─ denoise: 0.85-0.95（擴圖區需高 denoise）
+  ├─ steps: 30-40
+  ├─ cfg: 7-9
+  └─ sampler: dpmpp_2m / euler_a
+  ↓
+VAE Decode
+  ↓
+Save Image</code></pre>
+
+    <div class="callout tip">
+      <strong>✅ Feathering（羽化）的作用</strong><br>
+      羽化值決定原圖和擴圖區的過渡範圍，建議 60-80。太低會有明顯接縫，太高會模糊原圖邊緣。
+    </div>
+
+    <h3>方法 2: Ultimate SD Upscale（大圖專用）</h3>
+    <p>
+      適合處理高解析度擴圖（例如 1920×1080 → 3840×2160），支援分塊處理避免 VRAM 爆炸。
+    </p>
+    <ul>
+      <li>特別適合 <strong>SD3.5 Medium</strong>（技術上限 6144px）</li>
+      <li>可設定 tile size（例如 1024×1024）分段生成</li>
+      <li>需安裝 ComfyUI-Manager 插件</li>
+    </ul>
+  </section>
+
+  <!-- 模型選擇 -->
+  <section>
+    <h2>二、SD3.5 模型選擇</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>模型</th>
+          <th>擴圖優勢</th>
+          <th>最佳用途</th>
+          <th>VRAM</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="highlight">
+          <td><code>sd3.5_medium</code></td>
+          <td>原生多解析度支援<br>0.25-2 MP</td>
+          <td>1920×1080 → 3840×2160<br>任意比例擴圖</td>
+          <td>9.9 GB</td>
+        </tr>
+        <tr>
+          <td><code>sd3.5_large</code></td>
+          <td>最高品質<br>≈1 MP 訓練</td>
+          <td>1024×1024 向外擴展<br>方形構圖延伸</td>
+          <td>bf16 >24 GB<br>NF4 ≈11 GB</td>
+        </tr>
+        <tr>
+          <td><code>sd3.5_large_turbo</code></td>
+          <td>快速生成<br>步數少</td>
+          <td>快速預覽<br>測試構圖</td>
+          <td>bf16 >24 GB<br>NF4 ≈11 GB</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>推薦：SD3.5 Medium</strong><br>
+      擴圖最常見的需求是「橫向延伸」或「上下擴展」，Medium 的多解析度原生支援最適合這類場景。
+    </div>
+  </section>
+
+  <!-- 參數調整 -->
+  <section>
+    <h2>三、KSampler 參數調整</h2>
+
+    <h3>核心參數</h3>
+    <table>
+      <thead>
+        <tr><th>參數</th><th>建議值</th><th>說明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>steps</strong></td>
+          <td>30-40</td>
+          <td>擴圖需要更多步數確保細節</td>
+        </tr>
+        <tr>
+          <td><strong>cfg_scale</strong></td>
+          <td>7-9</td>
+          <td>稍高以保持 prompt 控制力</td>
+        </tr>
+        <tr>
+          <td><strong>sampler</strong></td>
+          <td>dpmpp_2m<br>euler_a</td>
+          <td>dpmpp_2m 更穩定<br>euler_a 更有創意</td>
+        </tr>
+        <tr>
+          <td><strong>scheduler</strong></td>
+          <td>karras</td>
+          <td>標準選擇</td>
+        </tr>
+        <tr class="highlight">
+          <td><strong>denoise</strong></td>
+          <td>0.85-0.95</td>
+          <td>擴圖區需要高 denoise 生成新內容</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warning">
+      <strong>⚠️ Denoise 的關鍵作用</strong><br>
+      • 原圖區域保持低 denoise（0.3-0.5）保留細節<br>
+      • 擴圖區域需要高 denoise（0.85-0.95）才能生成新內容<br>
+      • Pad Image for Outpainting 節點會自動處理遮罩，你只需調整 KSampler 的 denoise 值
+    </div>
+
+    <h3>ControlNet 增強（可選）</h3>
+    <p>加入 ControlNet 可以提升擴圖區域和原圖的一致性：</p>
+    <ul>
+      <li><strong>Canny</strong>：保持邊緣線條一致性，權重 0.6-0.8</li>
+      <li><strong>Depth</strong>：維持空間透視，適合建築/室內場景</li>
+      <li>不要權重過高（>0.9），會導致擴圖區域過於僵硬</li>
+    </ul>
+  </section>
+
+  <!-- Prompt 策略 -->
+  <section>
+    <h2>四、Prompt 策略</h2>
+
+    <h3>通用擴圖 Prompt 技巧</h3>
+
+    <div class="comparison">
+      <div class="do">
+        <h4>✅ 正確做法</h4>
+        <ul>
+          <li>保留原圖的核心描述詞（角色、風格、光線）</li>
+          <li>加入方向性延伸詞：<code>wide angle shot</code>, <code>extended background</code></li>
+          <li>描述期望的場景元素：<code>detailed floor</code>, <code>sky with clouds</code></li>
+          <li>明確指定風格一致性：<code>same art style</code>, <code>consistent lighting</code></li>
+        </ul>
+      </div>
+      <div class="dont">
+        <h4>❌ 避免</h4>
+        <ul>
+          <li>完全改變原圖主題（會導致風格斷裂）</li>
+          <li>加入與原圖矛盾的描述（例如原圖室內卻寫 outdoor）</li>
+          <li>過度複雜的 prompt（擴圖區域難以控制）</li>
+          <li>忽略 negative prompt（容易出現重複物件）</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>不同方向的 Prompt 調整</h3>
+
+    <h4>向左/右擴圖（橫向延伸）</h4>
+    <pre><code>Positive 加入:
+wider angle, panoramic view, extended scenery,
+more background details, spacious environment
+
+場景範例:
+- 舞台: stage wings, side curtains, audience seats
+- 街景: buildings on sides, street continuation
+- 室內: room corners, furniture on sides</code></pre>
+
+    <h4>向上擴圖（天空/天花板）</h4>
+    <pre><code>Positive 加入:
+sky visible, clouds, upper environment,
+ceiling details, overhead view
+
+場景範例:
+- 戶外: blue sky, white clouds, sunlight from above
+- 室內: ceiling lights, upper wall decorations
+- 建築: roof structure, architectural details above</code></pre>
+
+    <h4>向下擴圖（地面/全身）</h4>
+    <pre><code>Positive 加入:
+floor visible, ground details, lower body shown,
+full body visible, feet shown, standing pose
+
+場景範例:
+- 角色: full body portrait, complete figure
+- 室內: floor tiles, carpet patterns, furniture legs
+- 戶外: ground texture, grass, pavement</code></pre>
+
+    <h3>Negative Prompt 重點</h3>
+    <pre><code>cropped, cut off, incomplete, blurry, low quality,
+multiple characters, duplicated objects, repeated patterns,
+inconsistent style, mismatched lighting, watermark, signature</code></pre>
+
+    <div class="callout tip">
+      <strong>💡 防止物件重複</strong><br>
+      擴圖常見問題是角色或物件被複製。在 negative prompt 加入 <code>duplicated</code>, <code>multiple characters</code>, <code>repeated</code> 可大幅改善。
+    </div>
+  </section>
+
+  <!-- 角色 Prompt 範例 -->
+  <section>
+    <h2>五、角色 Prompt 範例：時乃空（Tokino Sora）</h2>
+    
+    <p>
+      以 Hololive 的時乃空為例，示範如何在擴圖中保持角色一致性。
+    </p>
+
+    <h3>核心特徵辨識詞</h3>
+    <div class="tip-card">
+      <strong>必備關鍵詞</strong>
+      <ul>
+        <li><code>tokino sora</code> 或 <code>hololive sora</code></li>
+        <li><code>short brown hair with side ponytail</code></li>
+        <li><code>blue eyes</code> / <code>bright blue eyes</code></li>
+        <li><code>white and blue idol dress</code> / <code>hair ribbon</code></li>
+      </ul>
+    </div>
+
+    <h3>範例 1: 偶像舞台場景（橫向擴圖）</h3>
+    <div class="example-box">
+      <h4>Positive Prompt</h4>
+      <pre><code>tokino sora, hololive, short brown hair with side ponytail, blue eyes,
+white and blue idol dress, hair ribbon, cheerful smile,
+idol stage performance, sparkly stage lights, professional concert,
+colorful spotlights, holographic effects, cheering crowd in background,
+wide angle shot, concert hall, dynamic stage lighting,
+high quality, official art style, vibrant colors, detailed background</code></pre>
+
+      <h4>Negative Prompt</h4>
+      <pre><code>long hair, wrong hair color, cropped, cut off, incomplete,
+blurry, low quality, bad anatomy, multiple characters,
+watermark, signature, dark, underexposed, duplicated</code></pre>
+    </div>
+
+    <h3>範例 2: 錄音室場景（四周擴圖）</h3>
+    <div class="example-box">
+      <h4>Positive Prompt</h4>
+      <pre><code>tokino sora, hololive idol, brown hair side ponytail, blue eyes,
+music studio interior, recording booth, microphone stand,
+headphones, sound panels on walls, music equipment,
+professional recording setup, warm studio lighting,
+wide interior shot, detailed room, cozy atmosphere,
+high quality, slice of life, soft colors</code></pre>
+
+      <h4>Negative Prompt</h4>
+      <pre><code>outdoor, exterior, cropped edges, incomplete room,
+blurry background, low quality, bad perspective,
+multiple characters, watermark, dark</code></pre>
+    </div>
+
+    <h3>範例 3: 校園/青春場景（向上擴圖）</h3>
+    <div class="example-box">
+      <h4>Positive Prompt</h4>
+      <pre><code>tokino sora, hololive, short brown hair, blue eyes, hair bow,
+school uniform or casual dress, standing outdoors,
+blue sky with white clouds, cherry blossom trees,
+spring atmosphere, soft sunlight, peaceful scenery,
+looking up, gentle breeze, sakura petals floating,
+high quality, anime style, pastel colors, detailed sky</code></pre>
+
+      <h4>Negative Prompt</h4>
+      <pre><code>indoor, dark sky, stormy weather, cropped top,
+low quality, blurry, bad anatomy, watermark</code></pre>
+    </div>
+
+    <h3>範例 4: 咖啡廳場景（向下擴圖，全身）</h3>
+    <div class="example-box">
+      <h4>Positive Prompt</h4>
+      <pre><code>tokino sora, hololive, brown hair side ponytail, blue eyes,
+casual idol outfit, white dress with blue accents,
+sitting at cafe table, full body visible, legs shown,
+wooden floor, cozy cafe interior, comfortable chair,
+coffee cup on table, warm lighting, relaxed pose,
+wide shot showing floor and lower environment,
+high quality, detailed illustration, soft atmosphere</code></pre>
+
+      <h4>Negative Prompt</h4>
+      <pre><code>cropped legs, cut off feet, floating, no floor,
+low quality, blurry, bad anatomy, deformed limbs,
+watermark, signature, dark</code></pre>
+    </div>
+
+    <h3>服裝與場景變體</h3>
+
+    <table>
+      <thead>
+        <tr><th>主題</th><th>Prompt 元素</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>經典偶像服</strong></td>
+          <td><code>white and blue idol dress, frills, ribbons, hair bow, stage outfit</code></td>
+        </tr>
+        <tr>
+          <td><strong>休閒服</strong></td>
+          <td><code>casual clothes, comfortable dress, cardigan, relaxed style</code></td>
+        </tr>
+        <tr>
+          <td><strong>音樂相關</strong></td>
+          <td><code>singing pose, holding microphone, music notes, concert stage, recording studio</code></td>
+        </tr>
+        <tr>
+          <td><strong>溫柔治癒系</strong></td>
+          <td><code>gentle smile, warm atmosphere, soft lighting, peaceful scenery, kind expression</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>🎵 時乃空的風格特色</strong><br>
+      她是 Hololive 的象徵性人物，風格偏向清新陽光、正能量。建議多使用柔和光線、藍白色系、溫暖色調來呈現她的特質。
+    </div>
+  </section>
+
+  <!-- 常見問題 -->
+  <section>
+    <h2>六、常見問題與解決</h2>
+
+    <h3>Q1: 擴圖部分和原圖接縫明顯？</h3>
+    <p><strong>解決方案：</strong></p>
+    <ul>
+      <li>提高 <code>feathering</code> 值到 60-100</li>
+      <li>降低 <code>denoise</code> 到 0.80-0.85（讓擴圖區更貼近原圖）</li>
+      <li>在 prompt 加入 <code>seamless transition</code>, <code>consistent style</code></li>
+    </ul>
+
+    <h3>Q2: 擴圖部分風格不一致？</h3>
+    <p><strong>解決方案：</strong></p>
+    <ul>
+      <li>在 positive prompt <strong>明確描述原圖風格</strong>（例如 <code>anime style</code>, <code>official art</code>）</li>
+      <li>加強 negative prompt，排除不想要的風格</li>
+      <li>使用 ControlNet Canny 保持邊緣一致性</li>
+    </ul>
+
+    <h3>Q3: 角色細節在擴圖後消失或變形？</h3>
+    <p><strong>解決方案：</strong></p>
+    <ul>
+      <li>使用 <strong>ControlNet Canny</strong>，權重 0.6-0.8</li>
+      <li>分兩階段：先擴圖生成背景，再用 img2img 精修角色</li>
+      <li>確保 prompt 中角色描述在最前面，權重較高</li>
+    </ul>
+
+    <h3>Q4: VRAM 不足？</h3>
+    <p><strong>解決方案：</strong></p>
+    <ul>
+      <li>使用 <strong>Ultimate SD Upscale</strong> 分塊處理</li>
+      <li>改用 <strong>SD3.5 Medium</strong>（9.9GB VRAM）</li>
+      <li>降低解析度，分階段擴圖（例如先擴到 1920×1080，再擴到 3840×2160）</li>
+      <li>Large 模型使用 NF4 量化（≈11GB）</li>
+    </ul>
+
+    <h3>Q5: 擴圖區域出現重複的角色或物件？</h3>
+    <p><strong>解決方案：</strong></p>
+    <ul>
+      <li>Negative prompt 加入 <code>duplicated, multiple characters, repeated patterns</code></li>
+      <li>降低 CFG scale 到 6-7（過高會強化 prompt 中的元素導致重複）</li>
+      <li>在 positive prompt 明確指定 <code>single character</code>, <code>solo</code></li>
+    </ul>
+  </section>
+
+  <!-- 進階技巧 -->
+  <section>
+    <h2>七、進階技巧</h2>
+
+    <h3>分階段擴圖</h3>
+    <p>對於大幅度擴展（例如 1024×1024 → 4096×2048），建議分多次小幅度擴圖：</p>
+    <pre><code>1. 原圖 1024×1024
+   ↓ 向右擴 512px
+2. 中間圖 1536×1024
+   ↓ 再向右擴 512px
+3. 中間圖 2048×1024
+   ↓ 向上下各擴 512px
+4. 最終圖 2048×2048</code></pre>
+    <p>優點：每次擴圖範圍小，風格更容易保持一致。</p>
+
+    <h3>權重調整（如模型支援）</h3>
+    <pre><code>角色名稱: (tokino sora:1.2)
+核心特徵: (brown hair, side ponytail:1.1)
+背景細節: (detailed background:0.9)</code></pre>
+    <p>用括號和數字調整元素的重要性，避免背景搶過角色。</p>
+
+    <h3>LoRA 組合建議</h3>
+    <ul>
+      <li><strong>角色 LoRA</strong>（例如 Hololive Sora）：權重 0.7-0.9</li>
+      <li><strong>風格 LoRA</strong>（例如動漫/偶像風格）：權重 0.5-0.7</li>
+      <li>避免疊加超過 2 個 LoRA，會導致風格衝突</li>
+    </ul>
+
+    <h3>結合 Img2Img 精修</h3>
+    <p>工作流程：</p>
+    <ol>
+      <li>使用 Outpainting 生成擴展後的完整場景</li>
+      <li>將結果導入 Img2Img，局部修正不滿意的區域</li>
+      <li>針對角色臉部/手部等細節進行 inpainting 精修</li>
+    </ol>
+  </section>
+
+  <!-- 相關頁面導航 -->
+  <nav class="guide-nav">
+    <h2>相關主題</h2>
+    <div class="nav-grid">
+      <a href="/comfyui-sd-guide/image-editing/" class="nav-card">
+        <h3>🖌️ 圖像編輯</h3>
+        <p>Inpainting 局部重繪技術</p>
+      </a>
+      <a href="/comfyui-sd-guide/resolutions/" class="nav-card">
+        <h3>📐 解析度設定</h3>
+        <p>Large/Medium/Turbo 多解析度對照</p>
+      </a>
+      <a href="/comfyui-sd-guide/prompting/" class="nav-card">
+        <h3>✍️ Prompting 技巧</h3>
+        <p>結構化 prompt 寫法與優化</p>
+      </a>
+      <a href="/comfyui-sd-guide/controlnet/" class="nav-card">
+        <h3>🎮 ControlNet</h3>
+        <p>精確控制構圖與姿態</p>
+      </a>
+    </div>
+  </nav>
+
+</div>
+
+</BaseLayout>
+
+<style>
+  /* 使用標準範本樣式，確保高對比度和可讀性 */
+  
+  .guide {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .breadcrumb {
+    margin-bottom: 1.5rem;
+  }
+
+  .breadcrumb a {
+    color: #8a909c;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .breadcrumb a:hover {
+    color: #38bdf8;
+  }
+
+  .guide-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #2a2f3a;
+  }
+
+  .guide-header h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: #8a909c;
+  }
+
+  section {
+    margin: 3rem 0;
+  }
+
+  section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  section h3 {
+    font-size: 1.25rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  section h4 {
+    font-size: 1.05rem;
+    margin: 1rem 0 0.5rem;
+    color: #1a1a1a;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+
+  thead {
+    background: #f3f4f6;
+  }
+
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid #d1d5db;
+    color: #1a1a1a;
+    background: white;
+  }
+
+  th {
+    font-weight: 600;
+    color: #1a1a1a;
+    background: #f3f4f6;
+  }
+
+  tbody tr:hover {
+    background: #f9fafb;
+  }
+
+  tbody tr.highlight {
+    background: #f0f9ff;
+  }
+
+  tbody tr.highlight:hover {
+    background: #e0f2fe;
+  }
+
+  code {
+    background: #f3f4f6;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, monospace;
+    color: #1a1a1a;
+  }
+
+  pre {
+    background: #f3f4f6;
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  /* 對比框 */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .do, .dont {
+    padding: 1rem;
+    border-radius: 6px;
+  }
+
+  .do {
+    background: #dcfce7;
+    border: 2px solid #16a34a;
+    color: #1a1a1a;
+  }
+
+  .dont {
+    background: #fee2e2;
+    border: 2px solid #dc2626;
+    color: #1a1a1a;
+  }
+
+  .do h4, .dont h4 {
+    margin: 0 0 0.75rem;
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
+  .do ul, .dont ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .do li, .dont li {
+    margin: 0.25rem 0;
+    color: #1a1a1a;
+  }
+
+  .do code, .dont code {
+    color: #1a1a1a;
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Callout */
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border-left: 4px solid;
+    color: #1a1a1a;
+  }
+
+  .callout.info {
+    background: #e0f2fe;
+    border-color: #0284c7;
+  }
+
+  .callout.tip {
+    background: #dcfce7;
+    border-color: #16a34a;
+  }
+
+  .callout.warning {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+
+  /* 提示卡片 */
+  .tip-card {
+    background: #f0f9ff;
+    border: 2px solid #0284c7;
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    color: #1a1a1a;
+  }
+
+  .tip-card strong {
+    color: #1a1a1a;
+  }
+
+  .tip-card ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .tip-card li {
+    margin: 0.25rem 0;
+    color: #1a1a1a;
+  }
+
+  .tip-card code {
+    color: #1a1a1a;
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  /* 範例框 */
+  .example-box {
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+    background: #f3f4f6;
+    border-radius: 6px;
+    border-left: 4px solid #38bdf8;
+  }
+
+  .example-box h4 {
+    margin: 0 0 0.75rem;
+    color: #38bdf8;
+  }
+
+  /* 導航區 */
+  .guide-nav {
+    margin: 4rem 0 3rem;
+    padding: 2rem;
+    background: #f9fafb;
+    border-radius: 8px;
+  }
+
+  .guide-nav h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: #1a1a1a;
+  }
+
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .nav-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    text-decoration: none;
+    color: #1a1a1a;
+    transition: all 0.2s;
+  }
+
+  .nav-card:hover {
+    border-color: #38bdf8;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+
+  .nav-card h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
+  .nav-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #4a4a4a;
+  }
+
+  /* 響應式 */
+  @media (max-width: 768px) {
+    .guide {
+      padding: 0 1rem;
+    }
+
+    .guide-header h1 {
+      font-size: 1.75rem;
+    }
+
+    section h2 {
+      font-size: 1.5rem;
+    }
+
+    .comparison {
+      grid-template-columns: 1fr;
+    }
+
+    .nav-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -25,13 +25,14 @@ const categorized = await fetchRepos();
   <section id="latest">
     <h2>🍳 Latest Thing — ComfyUI SD 指南系列</h2>
     <p>
-      剛完成 <strong>SD3.5 解析度設定指南</strong>，研究了 Large / Medium / Turbo 三個模型的多解析度能力，
-      整理成完整的技術文件 — 包含訓練範圍、技術上限、VRAM 需求、最佳實踐。
-      同時建立了 <strong>v1.2 標準樣式範本</strong>，修正深色模式下的可讀性問題（表格、code 區塊）。
+      剛新增 <strong>SD3.5 擴圖 (Outpainting) 指南</strong>，完整記錄 ComfyUI 節點配置、參數調整、
+      ControlNet 增強技巧，並附上 Hololive 時乃空角色的 prompt 範例（4 種場景變化）。
+      同時涵蓋 Large / Medium / Turbo 的解析度配置、VRAM 優化策略。
     </p>
     <p>
-      ComfyUI SD 指南現在有 6 個獨立頁面：工作流程、Prompting、圖像編輯、ControlNet、解析度設定、VRAM 優化。
-      所有頁面都符合 WCAG 可訪問性標準，深色文字在淺色背景上確保清晰可讀。
+      ComfyUI SD 指南現在有 <strong>7 個獨立頁面</strong>：工作流程、Prompting、圖像編輯、<strong>擴圖 (Outpainting)</strong>、
+      ControlNet、解析度設定、VRAM 優化。所有頁面都符合 WCAG 可訪問性標準（v1.2 樣式範本），
+      深色文字在淺色背景上確保清晰可讀。
     </p>
     <p>
       底層仍是 <strong>Hermes on Pi 4</strong> — 8GB RAM，Discord 前端，
@@ -83,9 +84,9 @@ const categorized = await fetchRepos();
     <h2>📚 Guides & Technical Notes</h2>
     <SectionCard title="ComfyUI Stable Diffusion 使用指南" icon="🎨">
       <p>
-        完整的 SD3.5 工作流程：基礎設定、Prompting 技巧、圖像編輯、ControlNet 引導、
-        <strong>多解析度配置</strong>（Large/Medium/Turbo 完整對照）、VRAM 優化。
-        涵蓋從基礎到進階的所有主題，拆分為 6 個獨立頁面方便查閱。
+        完整的 SD3.5 工作流程：基礎設定、Prompting 技巧、圖像編輯、<strong>擴圖 (Outpainting)</strong>、
+        ControlNet 引導、<strong>多解析度配置</strong>（Large/Medium/Turbo 完整對照）、VRAM 優化。
+        涵蓋從基礎到進階的所有主題，拆分為 7 個獨立頁面方便查閱。
       </p>
       <p style="margin-top: 0.75rem;">
         <a href="/comfyui-sd-guide/" style="font-weight: 600;">→ 閱讀完整指南</a>
