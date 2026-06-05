@@ -2,13 +2,14 @@
  * Justin's Workshop - 指南頁面標準樣式範本
  * 
  * 用於所有技術指南和文件頁面的一致性排版
- * 最後更新: 2026-06-04
+ * 最後更新: 2026-06-05 (v1.1)
  * 
  * 設計原則:
  * - 深色文字 (#1a1a1a) 在淺色背景上，確保 WCAG 可訪問性
  * - 淺色背景區塊使用明確的顏色值，避免依賴 CSS 變數
  * - 對比框（do/dont）使用綠色/紅色區分，文字始終深色
  * - 導航卡片統一使用白色背景 + 深色標題和描述文字
+ * - 所有子元素 (h4, ul, li, code) 都明確設定深色，避免繼承問題
  */
 
 /* === 主容器 === */
@@ -116,11 +117,23 @@ pre code {
 .do h4, .dont h4 {
   margin: 0 0 0.75rem;
   color: #1a1a1a;
+  font-weight: 600;
+}
+
+.do ul, .dont ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.do li, .dont li {
+  margin: 0.25rem 0;
+  color: #1a1a1a;
 }
 
 .do pre, .dont pre,
 .do code, .dont code {
   color: #1a1a1a;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* === 提示框（Callout） === */
