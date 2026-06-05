@@ -387,6 +387,8 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <style>
+  /* 使用標準範本樣式，確保高對比度和可讀性 */
+  
   .guide {
     max-width: 48rem;
     margin: 0 auto;
@@ -415,6 +417,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
   .guide-header h1 {
     font-size: 2.25rem;
     margin-bottom: 0.75rem;
+    line-height: 1.2;
   }
 
   .subtitle {
@@ -439,6 +442,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
   section h4 {
     font-size: 1.05rem;
     margin: 1rem 0 0.5rem;
+    color: #1a1a1a;
   }
 
   table {
@@ -456,10 +460,12 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
     padding: 0.75rem;
     text-align: left;
     border: 1px solid var(--border);
+    color: #1a1a1a;
   }
 
   th {
     font-weight: 600;
+    color: #1a1a1a;
   }
 
   tbody tr:hover {
@@ -480,6 +486,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
     border-radius: 3px;
     font-size: 0.9em;
     font-family: ui-monospace, monospace;
+    color: #1a1a1a;
   }
 
   pre {
@@ -489,18 +496,25 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
     overflow-x: auto;
     line-height: 1.5;
     margin: 1rem 0;
+    color: #1a1a1a;
   }
 
   pre code {
     background: none;
     padding: 0;
+    color: #1a1a1a;
   }
 
+  /* === 提示框 === */
   .callout {
     padding: 1rem 1.25rem;
     border-radius: 6px;
     margin: 1.5rem 0;
     border-left: 4px solid;
+    color: #1a1a1a;
+  }
+
+  .callout strong {
     color: #1a1a1a;
   }
 
@@ -514,6 +528,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
     border-color: #f59e0b;
   }
 
+  /* === 對比框（正確/錯誤做法） === */
   .do-dont {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -524,24 +539,42 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
   .do, .dont {
     padding: 1rem;
     border-radius: 6px;
-    border-left: 4px solid;
   }
 
   .do {
     background: #dcfce7;
-    border-color: #16a34a;
+    border: 2px solid #16a34a;
+    color: #1a1a1a;
   }
 
   .dont {
     background: #fee2e2;
-    border-color: #dc2626;
+    border: 2px solid #dc2626;
+    color: #1a1a1a;
   }
 
   .do h4, .dont h4 {
-    margin-top: 0;
-    font-size: 1rem;
+    margin: 0 0 0.75rem;
+    color: #1a1a1a;
+    font-weight: 600;
   }
 
+  .do ul, .dont ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .do li, .dont li {
+    margin: 0.25rem 0;
+    color: #1a1a1a;
+  }
+
+  .do code, .dont code {
+    color: #1a1a1a;
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  /* === 技巧卡片網格 === */
   .tips-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -560,12 +593,17 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
     margin-top: 0;
     font-size: 0.95rem;
     color: #1a1a1a;
+    font-weight: 600;
   }
 
   .tip-card p {
     margin: 0.5rem 0;
     font-size: 0.85rem;
-    color: #4a4a4a;
+    color: #1a1a1a;
+  }
+
+  .tip-card code {
+    font-size: 0.8rem;
   }
 
   .savings {
@@ -573,6 +611,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
     color: #16a34a;
   }
 
+  /* === 策略對比 === */
   .strategy {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -590,6 +629,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
   .model-strategy h4 {
     margin-top: 0;
     color: #1a1a1a;
+    font-weight: 600;
   }
 
   .model-strategy ul {
@@ -600,8 +640,10 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
   .model-strategy li {
     margin: 0.5rem 0;
     font-size: 0.9rem;
+    color: #1a1a1a;
   }
 
+  /* === 導航區域 === */
   .guide-nav {
     margin: 4rem 0 3rem;
     padding: 2rem;
@@ -612,6 +654,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
   .guide-nav h2 {
     margin-top: 0;
     font-size: 1.5rem;
+    color: #1a1a1a;
   }
 
   .nav-grid {
@@ -650,7 +693,16 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
     color: #4a4a4a;
   }
 
+  /* === 響應式設計 === */
   @media (max-width: 768px) {
+    .guide {
+      padding: 0 1rem;
+    }
+
+    .guide-header h1 {
+      font-size: 1.75rem;
+    }
+
     .do-dont, .strategy {
       grid-template-columns: 1fr;
     }
