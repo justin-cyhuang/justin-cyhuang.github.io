@@ -23,22 +23,26 @@ const categorized = await fetchRepos();
   </section>
 
   <section id="latest">
-    <h2>🍳 Latest Thing — Hermes on a Pi</h2>
+    <h2>🍳 Latest Thing — ComfyUI SD 指南系列</h2>
     <p>
-      我用一台 8GB RAM 的 Pi 4 當家用 agent server。Discord 當前端，
-      現在主模型已設為 gpt-5-mini（互動優先），delegation 執行模型為 GitHub Copilot / gpt-5.4。
-      Obsidian Vault 仍作為長期記憶來源。
+      剛完成 <strong>SD3.5 解析度設定指南</strong>，研究了 Large / Medium / Turbo 三個模型的多解析度能力，
+      整理成完整的技術文件 — 包含訓練範圍、技術上限、VRAM 需求、最佳實踐。
+      同時建立了 <strong>v1.2 標準樣式範本</strong>，修正深色模式下的可讀性問題（表格、code 區塊）。
     </p>
     <p>
-      最近更新：daily-morning-briefing 和 weekly-portfolio-report 的 cron jobs 已指定 provider/model override（copilot/gpt-5.4）；
-      Gateway 已重啟並驗證連線正常，系統看門狗與排程維持不變。
-      它仍每天早上 08:00 推 10 則跨來源新聞（BBC / CNBC / NHK）+ 台中天氣到 Discord。
+      ComfyUI SD 指南現在有 6 個獨立頁面：工作流程、Prompting、圖像編輯、ControlNet、解析度設定、VRAM 優化。
+      所有頁面都符合 WCAG 可訪問性標準，深色文字在淺色背景上確保清晰可讀。
+    </p>
+    <p>
+      底層仍是 <strong>Hermes on Pi 4</strong> — 8GB RAM，Discord 前端，
+      主模型 claude-sonnet-4.5 (copilot)，delegation 用 claude-opus-4.7。
+      每天早上 08:00 推 10 則跨來源新聞 + 台中天氣到 Discord。
     </p>
     <p>
       想試？官網在
       <a href="https://hermes-agent.nousresearch.com/" target="_blank" rel="noopener">hermes-agent.nousresearch.com</a>。
     </p>
-    <p class="updated">最後更新：2026-05-27 02:18:21 CST</p>
+    <p class="updated">最後更新：2026-06-05 12:50 CST</p>
   </section>
 
   <section id="workflows">
@@ -79,8 +83,9 @@ const categorized = await fetchRepos();
     <h2>📚 Guides & Technical Notes</h2>
     <SectionCard title="ComfyUI Stable Diffusion 使用指南" icon="🎨">
       <p>
-        完整的工作流程、prompting 技巧、圖像編輯、ControlNet 引導與 VRAM 優化。
-        涵蓋從基礎到進階的所有主題，拆分為獨立頁面方便查閱。
+        完整的 SD3.5 工作流程：基礎設定、Prompting 技巧、圖像編輯、ControlNet 引導、
+        <strong>多解析度配置</strong>（Large/Medium/Turbo 完整對照）、VRAM 優化。
+        涵蓋從基礎到進階的所有主題，拆分為 6 個獨立頁面方便查閱。
       </p>
       <p style="margin-top: 0.75rem;">
         <a href="/comfyui-sd-guide/" style="font-weight: 600;">→ 閱讀完整指南</a>
