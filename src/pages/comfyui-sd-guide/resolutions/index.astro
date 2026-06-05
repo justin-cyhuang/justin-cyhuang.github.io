@@ -1,0 +1,663 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <article class="guide">
+    <nav class="breadcrumb">
+      <a href="/comfyui-sd-guide/">← ComfyUI SD 指南</a>
+    </nav>
+
+    <header class="guide-header">
+      <h1>📐 解析度設定指南</h1>
+      <p class="subtitle">
+        SD 3.5 Large / Medium / Turbo 支援的解析度、技術限制、最佳實踐
+      </p>
+    </header>
+
+    <section id="overview">
+      <h2>🎯 核心概念</h2>
+      <p>
+        Stable Diffusion 3.5 不同版本對解析度的支援差異很大。
+        選錯解析度會導致：物件重複、肢體變形、紋理崩壞、VRAM 不足。
+      </p>
+
+      <div class="callout warning">
+        <strong>⚠️ 常見錯誤</strong><br>
+        許多人以為「技術上限 = 可用上限」，在 Large 模型用 2048×2048 出圖，
+        結果人物長出 4 隻手、背景重複 3 次。<br>
+        <strong>訓練解析度才是品質保證區間</strong>，技術上限只是「不會報錯」的邊界。
+      </div>
+    </section>
+
+    <section id="models-comparison">
+      <h2>📊 模型解析度對照表</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>訓練範圍</th>
+            <th>預設解析度</th>
+            <th>技術上限</th>
+            <th>VRAM</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sd3.5_large</code></td>
+            <td><strong>≈ 1 MP</strong></td>
+            <td>1024×1024</td>
+            <td>3072 px (單邊)</td>
+            <td>bf16 >24 GB<br>NF4 ≈11 GB</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_large_turbo</code></td>
+            <td><strong>≈ 1 MP</strong></td>
+            <td>1024×1024</td>
+            <td>3072 px (單邊)</td>
+            <td>bf16 >24 GB<br>NF4 ≈11 GB</td>
+          </tr>
+          <tr>
+            <td><code>sd3.5_medium</code></td>
+            <td><strong>0.25 ~ 2 MP</strong></td>
+            <td>1024×1024</td>
+            <td>6144 px (單邊)</td>
+            <td>9.9 GB (不含T5)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <strong>💡 架構差異</strong><br>
+        Medium 使用 <strong>MMDiT-X</strong> 架構（dual attention layers），
+        在訓練時就針對多解析度做了優化，所以在 1.5 ~ 2 MP 範圍品質仍穩定。<br>
+        Large / Turbo 是標準 MMDiT，訓練數據 95% 都在 1 MP 附近，超出容易崩。
+      </div>
+    </section>
+
+    <section id="constraints">
+      <h2>🔒 硬性約束（必須遵守）</h2>
+      
+      <h3>1. 整除性要求</h3>
+      <p>
+        寬與高都必須是 <strong>16 的倍數</strong>。<br>
+        原因：VAE 下採樣 8× + Transformer patch size 2 = 16×
+      </p>
+      <div class="do-dont">
+        <div class="do">
+          <h4>✅ 正確範例</h4>
+          <ul>
+            <li>1024×1024 (16×64, 16×64)</li>
+            <li>1344×768 (16×84, 16×48)</li>
+            <li>1920×1088 (16×120, 16×68)</li>
+          </ul>
+        </div>
+        <div class="dont">
+          <h4>❌ 會報錯</h4>
+          <ul>
+            <li>1000×1000 (不是 16 倍數)</li>
+            <li>1920×1080 (1080 ÷ 16 = 67.5)</li>
+            <li>768×432 (432 ÷ 16 = 27)</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>2. 長寬比限制</h3>
+      <p>
+        建議保持在 <strong>1:2.5</strong> 以內。過度極端（如 4:1）會出現：
+      </p>
+      <ul>
+        <li>背景元素重複（天空出現 3 個太陽）</li>
+        <li>人物複製（一個人分裂成 2 個）</li>
+        <li>構圖失衡（主體偏移到邊緣）</li>
+      </ul>
+
+      <h3>3. 實務建議：用 64 的倍數</h3>
+      <p>
+        雖然技術上只需 16 倍數，但 <strong>64 倍數</strong>能：
+      </p>
+      <ul>
+        <li>對齊訓練時的 aspect ratio buckets</li>
+        <li>避免某些 VAE 實作的邊界 artifacts</li>
+        <li>與主流工具（如 Kohya trainer）保持一致</li>
+      </ul>
+    </section>
+
+    <section id="recommended-sizes">
+      <h2>🎨 推薦解析度預設值</h2>
+      
+      <h3>通用預設（≈ 1 MP，Large/Medium 皆適用）</h3>
+      <table>
+        <thead>
+          <tr><th>比例</th><th>解析度</th><th>總像素</th><th>適用場景</th></tr>
+        </thead>
+        <tbody>
+          <tr class="highlight">
+            <td><strong>1:1</strong></td>
+            <td><strong>1024 × 1024</strong></td>
+            <td>1.05 MP</td>
+            <td>方形、Instagram、頭像</td>
+          </tr>
+          <tr class="highlight">
+            <td><strong>16:9</strong></td>
+            <td><strong>1344 × 768</strong></td>
+            <td>1.03 MP</td>
+            <td>橫幅、YouTube 縮圖、桌布</td>
+          </tr>
+          <tr class="highlight">
+            <td><strong>9:16</strong></td>
+            <td><strong>768 × 1344</strong></td>
+            <td>1.03 MP</td>
+            <td>直幅、手機桌布、IG Story</td>
+          </tr>
+          <tr>
+            <td>4:3</td>
+            <td>1152 × 896</td>
+            <td>1.03 MP</td>
+            <td>傳統螢幕、投影片</td>
+          </tr>
+          <tr>
+            <td>3:4</td>
+            <td>896 × 1152</td>
+            <td>1.03 MP</td>
+            <td>直式相片</td>
+          </tr>
+          <tr>
+            <td>3:2</td>
+            <td>1216 × 832</td>
+            <td>1.01 MP</td>
+            <td>相機標準比例</td>
+          </tr>
+          <tr>
+            <td>2:3</td>
+            <td>832 × 1216</td>
+            <td>1.01 MP</td>
+            <td>直式相機比例</td>
+          </tr>
+          <tr>
+            <td>21:9</td>
+            <td>1536 × 640</td>
+            <td>0.98 MP</td>
+            <td>超寬螢幕、電影感</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Medium 專屬：高解析度直出（1.5 ~ 2 MP）</h3>
+      <table>
+        <thead>
+          <tr><th>用途</th><th>解析度</th><th>總像素</th><th>備註</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Full HD (16:9)</td>
+            <td>1920 × 1088</td>
+            <td>2.09 MP</td>
+            <td>官方範例（1080 不是 16 倍數，改用 1088）</td>
+          </tr>
+          <tr>
+            <td>高品質橫幅</td>
+            <td>1664 × 1216</td>
+            <td>2.02 MP</td>
+            <td>4:3 高解析度</td>
+          </tr>
+          <tr>
+            <td>直幅高解析度</td>
+            <td>1280 × 1920</td>
+            <td>2.46 MP</td>
+            <td>2:3 加強版</td>
+          </tr>
+          <tr>
+            <td>寬螢幕</td>
+            <td>2048 × 1024</td>
+            <td>2.10 MP</td>
+            <td>2:1 比例</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <strong>⚠️ Large / Turbo 不適合高解析度</strong><br>
+        如果需要 >1.5 MP，應該用 <strong>hi-res fix 工作流</strong>：<br>
+        1. 先用 1024×1024 生成基礎圖<br>
+        2. Latent upscale 放大到目標尺寸<br>
+        3. 低 denoise (0.3-0.5) 二次取樣，加細節
+      </div>
+    </section>
+
+    <section id="vram-impact">
+      <h2>💾 解析度對 VRAM 的影響</h2>
+      
+      <h3>成長比例</h3>
+      <table>
+        <thead>
+          <tr><th>解析度變化</th><th>像素倍數</th><th>VRAM 成長</th><th>原因</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1024² → 1536²</td>
+            <td>2.25×</td>
+            <td>≈ 2.25×</td>
+            <td>注意力 ∝ (序列長度)²</td>
+          </tr>
+          <tr>
+            <td>1024² → 2048²</td>
+            <td>4×</td>
+            <td>≈ 4×</td>
+            <td>transformer 二次成長</td>
+          </tr>
+          <tr>
+            <td>1344×768 → 1920×1088</td>
+            <td>2.03×</td>
+            <td>≈ 2×</td>
+            <td>1 MP → 2 MP</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>省 VRAM 技巧</h3>
+      <div class="tips-grid">
+        <div class="tip-card">
+          <h4>🔧 T5 編碼器優化</h4>
+          <p>用 <code>t5xxl_fp8_e4m3fn.safetensors</code> 取代 fp16</p>
+          <p class="savings">節省 4.8 GB</p>
+        </div>
+        <div class="tip-card">
+          <h4>🔧 VAE Tiling</h4>
+          <p>啟用 <code>enable_tiling()</code> 或 <code>enable_slicing()</code></p>
+          <p class="savings">高解析度必備</p>
+        </div>
+        <div class="tip-card">
+          <h4>🔧 換用 Medium</h4>
+          <p>Medium 模型本體只需 ~6 GB，Large 需 ~12 GB</p>
+          <p class="savings">節省 6 GB</p>
+        </div>
+        <div class="tip-card">
+          <h4>🔧 量化</h4>
+          <p>NF4 量化 + CPU offload</p>
+          <p class="savings">24 GB → 11 GB</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="quality-tips">
+      <h2>✨ 品質最佳化建議</h2>
+      
+      <h3>依模型選解析度</h3>
+      <div class="strategy">
+        <div class="model-strategy">
+          <h4>Large / Turbo 策略</h4>
+          <ul>
+            <li>✅ 死守 1 MP（±10% 安全）</li>
+            <li>✅ 用比例桶（1344×768, 768×1344）</li>
+            <li>❌ 避免 >1.5 MP 直出</li>
+            <li>🔄 高解析度改用 hi-res fix</li>
+          </ul>
+        </div>
+        <div class="model-strategy">
+          <h4>Medium 策略</h4>
+          <ul>
+            <li>✅ 1 ~ 2 MP 都可直出</li>
+            <li>✅ 1920×1088 (Full HD) 官方保證</li>
+            <li>⚠️ 超過 2 MP 品質快速劣化</li>
+            <li>💡 想省 VRAM 又要高解析度首選</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>常見問題診斷</h3>
+      <table>
+        <thead>
+          <tr><th>症狀</th><th>原因</th><th>解法</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>人物有 4 隻手</td>
+            <td>解析度超出訓練範圍</td>
+            <td>降到 1 MP 或用 hi-res fix</td>
+          </tr>
+          <tr>
+            <td>背景元素重複</td>
+            <td>長寬比過極端（如 4:1）</td>
+            <td>改用 2:1 或分段 outpaint</td>
+          </tr>
+          <tr>
+            <td>紋理崩壞、色塊</td>
+            <td>VRAM 不足導致精度下降</td>
+            <td>啟用 T5 fp8 + VAE tiling</td>
+          </tr>
+          <tr>
+            <td>維度錯誤報錯</td>
+            <td>不是 16 倍數</td>
+            <td>調整到最近的 16 倍數（建議 64）</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="technical-details">
+      <h2>🔬 技術細節（進階）</h2>
+      
+      <h3>為什麼有「技術上限」？</h3>
+      <p>
+        來自 transformer 設定檔的 <code>pos_embed_max_size</code> 參數：
+      </p>
+      <ul>
+        <li><strong>Large / Turbo</strong>: <code>pos_embed_max_size = 192</code></li>
+        <li><strong>Medium</strong>: <code>pos_embed_max_size = 384</code></li>
+      </ul>
+      <p>計算公式：</p>
+      <pre><code>最大像素邊長 = pos_embed_max_size × patch_size × VAE_scale
+            = 192 × 2 × 8 = 3072 px  (Large)
+            = 384 × 2 × 8 = 6144 px  (Medium)</code></pre>
+      <p>
+        ComfyUI 會在超過這個值時拋出 <code>assert</code> 錯誤，
+        所以這是「會直接報錯」的硬上限，不是建議值。
+      </p>
+
+      <h3>為什麼 Medium 支援高解析度？</h3>
+      <p>
+        MMDiT-X 架構的 <strong>dual attention layers</strong>（前 12 層同時計算 spatial + channel attention）
+        讓模型在不同解析度下都能保持穩定的特徵表達。
+      </p>
+      <p>
+        訓練時用 <strong>multi-resolution bucketing</strong>（0.25 ~ 2 MP 範圍的多種比例），
+        而非 Large 的單一 1 MP 訓練。
+      </p>
+    </section>
+
+    <nav class="guide-nav">
+      <h2>📚 相關主題</h2>
+      <div class="nav-grid">
+        <a href="/comfyui-sd-guide/" class="nav-card">
+          <h3>🏠 回到主頁</h3>
+          <p>概覽、模型選擇、基礎參數</p>
+        </a>
+        <a href="/comfyui-sd-guide/image-editing/" class="nav-card">
+          <h3>🖼️ 圖像編輯</h3>
+          <p>img2img、inpainting、outpainting</p>
+        </a>
+        <a href="/comfyui-sd-guide/optimization/" class="nav-card">
+          <h3>💾 VRAM 優化</h3>
+          <p>量化、tiling、offload 技巧</p>
+        </a>
+      </div>
+    </nav>
+  </article>
+</BaseLayout>
+
+<style>
+  .guide {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .breadcrumb {
+    margin-bottom: 1.5rem;
+  }
+
+  .breadcrumb a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .breadcrumb a:hover {
+    color: var(--link-hover);
+  }
+
+  .guide-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .guide-header h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+  }
+
+  section {
+    margin: 3rem 0;
+  }
+
+  section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  section h3 {
+    font-size: 1.25rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  section h4 {
+    font-size: 1.05rem;
+    margin: 1rem 0 0.5rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+
+  thead {
+    background: var(--bg-secondary);
+  }
+
+  th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid var(--border);
+  }
+
+  th {
+    font-weight: 600;
+  }
+
+  tbody tr:hover {
+    background: var(--bg-secondary);
+  }
+
+  tbody tr.highlight {
+    background: #f0f9ff;
+  }
+
+  tbody tr.highlight:hover {
+    background: #e0f2fe;
+  }
+
+  code {
+    background: var(--bg-secondary);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, monospace;
+  }
+
+  pre {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 1rem 0;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border-left: 4px solid;
+    color: #1a1a1a;
+  }
+
+  .callout.info {
+    background: #e0f2fe;
+    border-color: #0284c7;
+  }
+
+  .callout.warning {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+
+  .do-dont {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .do, .dont {
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid;
+  }
+
+  .do {
+    background: #dcfce7;
+    border-color: #16a34a;
+  }
+
+  .dont {
+    background: #fee2e2;
+    border-color: #dc2626;
+  }
+
+  .do h4, .dont h4 {
+    margin-top: 0;
+    font-size: 1rem;
+  }
+
+  .tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .tip-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .tip-card h4 {
+    margin-top: 0;
+    font-size: 0.95rem;
+    color: #1a1a1a;
+  }
+
+  .tip-card p {
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+    color: #4a4a4a;
+  }
+
+  .savings {
+    font-weight: 600;
+    color: #16a34a;
+  }
+
+  .strategy {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .model-strategy {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+  }
+
+  .model-strategy h4 {
+    margin-top: 0;
+    color: #1a1a1a;
+  }
+
+  .model-strategy ul {
+    margin: 0.75rem 0;
+    padding-left: 1.25rem;
+  }
+
+  .model-strategy li {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  .guide-nav {
+    margin: 4rem 0 3rem;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+  }
+
+  .guide-nav h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+  }
+
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .nav-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+  }
+
+  .nav-card:hover {
+    border-color: var(--link-hover);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+
+  .nav-card h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+
+  .nav-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #4a4a4a;
+  }
+
+  @media (max-width: 768px) {
+    .do-dont, .strategy {
+      grid-template-columns: 1fr;
+    }
+
+    .nav-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</BaseLayout>
