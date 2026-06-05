@@ -2,7 +2,7 @@
  * Justin's Workshop - 指南頁面標準樣式範本
  * 
  * 用於所有技術指南和文件頁面的一致性排版
- * 最後更新: 2026-06-05 (v1.1)
+ * 最後更新: 2026-06-05 (v1.2)
  * 
  * 設計原則:
  * - 深色文字 (#1a1a1a) 在淺色背景上，確保 WCAG 可訪問性
@@ -10,6 +10,7 @@
  * - 對比框（do/dont）使用綠色/紅色區分，文字始終深色
  * - 導航卡片統一使用白色背景 + 深色標題和描述文字
  * - 所有子元素 (h4, ul, li, code) 都明確設定深色，避免繼承問題
+ * - 表格使用明確的淺色背景 (#f3f4f6) 確保在深色模式下可讀
  */
 
 /* === 主容器 === */
@@ -24,20 +25,20 @@
 }
 
 .breadcrumb a {
-  color: var(--text-muted);
+  color: #8a909c;
   text-decoration: none;
   font-size: 0.9rem;
 }
 
 .breadcrumb a:hover {
-  color: var(--link-hover);
+  color: #38bdf8;
 }
 
 /* === 頁面標題區 === */
 .guide-header {
   margin-bottom: 2.5rem;
   padding-bottom: 1.5rem;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 2px solid #2a2f3a;
 }
 
 .guide-header h1 {
@@ -48,7 +49,7 @@
 
 .subtitle {
   font-size: 1.1rem;
-  color: var(--text-muted);
+  color: #8a909c;
 }
 
 /* === 章節結構 === */
@@ -68,7 +69,7 @@ section h3 {
 
 /* === 程式碼區塊 === */
 pre {
-  background: var(--bg-secondary);
+  background: #f3f4f6;
   padding: 1rem;
   border-radius: 6px;
   overflow-x: auto;
@@ -77,16 +78,55 @@ pre {
 }
 
 code {
-  background: var(--bg-secondary);
+  background: #f3f4f6;
   padding: 0.2em 0.4em;
   border-radius: 3px;
   font-size: 0.9em;
   font-family: ui-monospace, monospace;
+  color: #1a1a1a;
 }
 
 pre code {
   background: none;
   padding: 0;
+}
+
+/* === 表格 === */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+thead {
+  background: #f3f4f6;
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: left;
+  border: 1px solid #d1d5db;
+  color: #1a1a1a;
+  background: white;
+}
+
+th {
+  font-weight: 600;
+  color: #1a1a1a;
+  background: #f3f4f6;
+}
+
+tbody tr:hover {
+  background: #f9fafb;
+}
+
+tbody tr.highlight {
+  background: #f0f9ff;
+}
+
+tbody tr.highlight:hover {
+  background: #e0f2fe;
 }
 
 /* === 對比框（正確/錯誤做法） === */
@@ -170,7 +210,7 @@ pre code {
 .example-pair {
   margin: 1rem 0;
   padding: 1rem;
-  background: var(--bg-secondary);
+  background: #f3f4f6;
   border-radius: 6px;
 }
 
@@ -183,21 +223,21 @@ pre code {
 .example-box {
   margin: 1.5rem 0;
   padding: 1.25rem;
-  background: var(--bg-secondary);
+  background: #f3f4f6;
   border-radius: 6px;
-  border-left: 4px solid var(--link-color);
+  border-left: 4px solid #38bdf8;
 }
 
 .example-box h4 {
   margin: 0 0 0.75rem;
-  color: var(--link-color);
+  color: #38bdf8;
 }
 
 /* === 導航區域 === */
 .guide-nav {
   margin: 4rem 0 3rem;
   padding: 2rem;
-  background: var(--bg-secondary);
+  background: #f9fafb;
   border-radius: 8px;
 }
 
@@ -218,14 +258,14 @@ pre code {
   background: white;
   padding: 1.25rem;
   border-radius: 6px;
-  border: 1px solid var(--border);
+  border: 1px solid #d1d5db;
   text-decoration: none;
-  color: var(--text-primary);
+  color: #1a1a1a;
   transition: all 0.2s;
 }
 
 .nav-card:hover {
-  border-color: var(--link-hover);
+  border-color: #38bdf8;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   transform: translateY(-2px);
 }

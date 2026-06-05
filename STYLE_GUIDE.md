@@ -192,6 +192,17 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 
 ## 版本歷史
 
+### v1.2 (2026-06-05)
+- **修正深色模式可讀性問題**：移除所有未定義 CSS 變數依賴
+- **問題根源**：global.css 定義深色模式變數，但 guide-template.css 引用了未定義的 `var(--bg-secondary)`, `var(--link-hover)`, `var(--link-color)` 等變數
+- **解決方案**：
+  - 新增表格樣式規則，使用明確淺色背景 (`#f3f4f6`, `white`)
+  - 所有背景、邊框、文字顏色改用明確色值，不依賴 CSS 變數
+  - 確保表格、code、導航在深色模式下可讀
+- **更新檔案**：
+  - `src/styles/guide-template.css` (v1.2)
+  - `src/pages/comfyui-sd-guide/resolutions/index.astro`
+
 ### v1.1 (2026-06-05)
 - 修正解析度頁面文字對比度問題
 - 強化所有淺色背景區塊內的文字顏色規則：
