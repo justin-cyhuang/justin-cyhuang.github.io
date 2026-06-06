@@ -662,6 +662,8 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
     if (!mugModel) {
       loader.load('/mug.glb', (gltf) => {
         mugModel = gltf.scene;
+        // Scale down to 10% of original size
+        mugModel.scale.set(0.1, 0.1, 0.1);
         scene.add(mugModel);
         hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
       }, undefined, (error) => {
