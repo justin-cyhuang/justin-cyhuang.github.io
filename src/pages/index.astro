@@ -107,20 +107,24 @@ const categorized = await fetchRepos();
     ))}
   </section>
 
+  <section id="featured-project">
+    <h2>🛋️ Pillow Studio — 3D Interactive Demo</h2>
+    <p>
+      在瀏覽器裡操作一顆從 Blender export 出來的真實抱枕 mesh（23,522 頂點）。
+      使用 Three.js，純前端渲染，在 Pi 4 上建模匯出，桌機和行動裝置都能流暢執行。
+    </p>
+    <p>
+      <a href="/pillow-studio/" style="font-weight: 600; font-size: 1.05rem;">→ 打開 Pillow Studio 互動展示</a>
+    </p>
+  </section>
+
   <section id="demo">
-    <h2>🧪 Interactive Demo</h2>
+    <h2>🧪 React Island Demo</h2>
     <p>
       下面這顆按鈕是 React 元件（Astro Island），用 <code>client:visible</code> 指令，
-      只在它滑進 viewport 才會 hydrate。純靜態站也能放動的東西。
+      只在它滑進 viewport 才會 hydrate。證明純靜態站也能嵌入互動元件。
     </p>
     <SkillCounter client:visible initial={0} />
-
-    <p style="margin-top: 2rem;">
-      還有一個 3D 玩具 —
-      <a href="/pillow-studio/"><strong>🛋️ Pillow Studio</strong></a>：
-      在瀏覽器裡轉一顆從 Blender export 出來的真實抱枕 mesh（23,522 verts），
-      Three.js + 純前端、Pi 4 上 export 出來、桌機行動裝置都能跑。
-    </p>
   </section>
 
 </BaseLayout>
