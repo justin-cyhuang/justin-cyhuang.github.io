@@ -477,7 +477,6 @@ function bakeCanvas(img, mode, transform, aspectRatio = 1, flipVertical = false)
 function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
   const overlay = document.getElementById('crop-overlay');
   const preview = document.getElementById('crop-preview');
-  const modeBtns = overlay.querySelectorAll('[data-crop-mode]');
   const aspectLabel = document.getElementById('crop-aspect');
   const ar = img.naturalWidth / img.naturalHeight;
   
@@ -497,8 +496,7 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
   
   aspectLabel.textContent = `原圖 ${img.naturalWidth}×${img.naturalHeight} · 比例 ${ar.toFixed(2)}:1 · ${targetDesc}`;
 
-  let mode = 'crop';                              // 'crop' | 'fit'
-  let t = { offsetX: 0, offsetY: 0, scale: 1 };   // crop 模式下的偏移/縮放
+  let t = { offsetX: 0, offsetY: 0, scale: 1 };   // transform state
   let dragging = false;
   let dragStart = null;
 
@@ -523,9 +521,8 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
         ctx.fillRect(x, y, cell, cell);
       }
     }
-    // 把 bake 結果縮到 preview
-    // No flip needed - handle orientation in 3D texture if required
-    const baked = bakeCanvas(img, mode, t, aspectRatio, false);
+    // Bake and draw image with current transform
+    const baked = bakeCanvas(img, 'crop', t, aspectRatio, false);
     ctx.drawImage(baked, 0, 0, W, H);
     
     // Draw frame
@@ -543,25 +540,8 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
     }
   }
 
-  modeBtns.forEach(b => {
-    b.onclick = () => {
-      modeBtns.forEach(x => x.setAttribute('aria-pressed', 'false'));
-      b.setAttribute('aria-pressed', 'true');
-      mode = b.dataset.cropMode;
-      // 切換模式時重設 transform
-      t = { offsetX: 0, offsetY: 0, scale: 1 };
-      document.getElementById('crop-zoom').value = '1';
-      document.getElementById('crop-hint').textContent =
-        mode === 'crop'
-          ? '裁切模式：拖曳調整位置，滑桿縮放。超出 1:1 框的部分會被裁掉。'
-          : '保留全圖：整張圖縮到框內置中，空白處會顯示布料本身（含紋理）。';
-      renderPreview();
-    };
-  });
-
   // 拖曳
   preview.onmousedown = (e) => {
-    if (mode !== 'crop') return;
     dragging = true;
     dragStart = { x: e.offsetX, y: e.offsetY, ox: t.offsetX, oy: t.offsetY };
   };
@@ -580,26 +560,24 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
   const zoom = document.getElementById('crop-zoom');
   zoom.value = '1';
   zoom.oninput = () => {
-    if (mode !== 'crop') return;
     t.scale = parseFloat(zoom.value);
     renderPreview();
   };
 
   // 確認/取消
   document.getElementById('crop-confirm').onclick = () => {
-    // No flip needed - handle orientation in 3D texture if required
-    const bakedCanvas = bakeCanvas(img, mode, t, aspectRatio, false);
+    const bakedCanvas = bakeCanvas(img, 'crop', t, aspectRatio, false);
     
     if (targetSlot === 'pillow') {
       state.processedImageCanvas = bakedCanvas;
       rebuildPillow();
-      hud.textContent = `image ready · ${mode === 'crop' ? '裁切' : '保留全圖'} · ${img.width}×${img.height}`;
+      hud.textContent = `已套用圖片 · ${img.width}×${img.height}`;
     } else if (targetSlot === 'mug-body') {
       applyMugTexture('body', bakedCanvas);
-      hud.textContent = `馬克杯主造型已套用 · ${mode === 'crop' ? '裁切' : '保留全圖'} · ${img.width}×${img.height}`;
+      hud.textContent = `馬克杯主造型已套用 · ${img.width}×${img.height}`;
     } else if (targetSlot === 'mug-bottom') {
       applyMugTexture('bottom', bakedCanvas);
-      hud.textContent = `馬克杯杯底已套用 · ${mode === 'crop' ? '裁切' : '保留全圖'} · ${img.width}×${img.height}`;
+      hud.textContent = `馬克杯杯底已套用 · ${img.width}×${img.height}`;
     }
     
     // Reset preview classes
@@ -619,10 +597,7 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
     }
   };
 
-  // 預設 crop 模式
-  modeBtns.forEach(x => x.setAttribute('aria-pressed', x.dataset.cropMode === 'crop' ? 'true' : 'false'));
-  document.getElementById('crop-hint').textContent =
-    '裁切模式：拖曳調整位置，滑桿縮放。超出 1:1 框的部分會被裁掉。';
+  // Show overlay and render initial preview
   overlay.style.display = 'flex';
   renderPreview();
 }
