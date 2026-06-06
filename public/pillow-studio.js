@@ -732,6 +732,7 @@ function applyMugTexture(target, canvas) {
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.flipY = false;  // Don't flip — canvas is already correct orientation
   
   if (target === 'body') {
     mugBodyTexture = texture;
