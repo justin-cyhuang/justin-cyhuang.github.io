@@ -666,8 +666,34 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
         mugModel.scale.set(0.1, 0.1, 0.1);
         
         // Set all meshes to white material with proper lighting
+        // Remove any plane/ground meshes
+        const toRemove = [];
         mugModel.traverse((child) => {
           if (child.isMesh) {
+            // Check if this is a plane (likely the table/ground)
+            // Planes typically have names like 'Plane', 'Ground', or very flat geometry
+            const geometry = child.geometry;
+            if (child.name.toLowerCase().includes('plane') || 
+                child.name.toLowerCase().includes('ground') ||
+                child.name.toLowerCase().includes('table')) {
+              toRemove.push(child);
+              return;
+            }
+            
+            // Also check geometry bounds - if it's very flat (thin in Y), it's likely a plane
+            if (geometry.boundingBox === null) geometry.computeBoundingBox();
+            const box = geometry.boundingBox;
+            const sizeY = box.max.y - box.min.y;
+            const sizeX = box.max.x - box.min.x;
+            const sizeZ = box.max.z - box.min.z;
+            
+            // If Y dimension is much smaller than X and Z, it's a horizontal plane
+            if (sizeY < 0.1 && (sizeX > 1 || sizeZ > 1)) {
+              toRemove.push(child);
+              return;
+            }
+            
+            // Set material for the mug itself
             child.material = new THREE.MeshStandardMaterial({
               color: 0xffffff,
               roughness: 0.3,
@@ -677,6 +703,11 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
             child.castShadow = true;
             child.receiveShadow = true;
           }
+        });
+        
+        // Remove the plane meshes
+        toRemove.forEach(mesh => {
+          if (mesh.parent) mesh.parent.remove(mesh);
         });
         
         scene.add(mugModel);
