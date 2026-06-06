@@ -198,6 +198,8 @@
       border: 1px solid var(--border); border-radius: 8px;
       cursor: grab; background: #fafafa;
     }
+    #crop-preview.aspect-3-1 { aspect-ratio: 3/1; }
+    #crop-preview.aspect-1-1 { aspect-ratio: 1/1; }
     #crop-preview:active { cursor: grabbing; }
     .crop-zoom-row {
       display: flex; align-items: center; gap: 10px;
@@ -228,32 +230,57 @@
   </header>
   <main>
     <aside>
+      <h2>0. 選擇模型</h2>
+      <div class="field">
+        <select id="model-select">
+          <option value="pillow">抱枕 45×45 cm</option>
+          <option value="mug">馬克杯</option>
+        </select>
+      </div>
+
       <h2>1. 上傳圖案</h2>
-      <div class="field">
-        <input type="file" id="img-upload" accept="image/*" />
+      <div id="upload-pillow">
+        <div class="field">
+          <input type="file" id="img-upload" accept="image/*" />
+        </div>
+        <div class="crop-hint">
+          非 1:1 比例會跳出裁切視窗讓你選「裁切」或「保留全圖（露出布料）」
+        </div>
       </div>
-      <div class="crop-hint">
-        非 1:1 比例會跳出裁切視窗讓你選「裁切」或「保留全圖（露出布料）」
+      <div id="upload-mug" style="display: none;">
+        <div class="field">
+          <label>主造型圖案 (3:1 比例)</label>
+          <input type="file" id="img-upload-mug-body" accept="image/*" />
+        </div>
+        <div class="field" style="margin-top: 12px;">
+          <label>杯底圖案 (圓形)</label>
+          <input type="file" id="img-upload-mug-bottom" accept="image/*" />
+        </div>
+        <div class="crop-hint">
+          非指定比例會跳出裁切視窗調整
+        </div>
       </div>
 
-      <h2>2. 尺寸</h2>
-      <div class="field">
-        <select id="size" disabled>
-          <option value="45x45">45 × 45 cm（標準方枕）</option>
-          <option value="40x40" disabled>40 × 40 cm — MVP 後解鎖</option>
-          <option value="50x50" disabled>50 × 50 cm — MVP 後解鎖</option>
-          <option value="30x50" disabled>30 × 50 cm 腰枕 — MVP 後解鎖</option>
-          <option value="65x65" disabled>65 × 65 cm Euro — MVP 後解鎖</option>
-        </select>
-      </div>
+      <div id="pillow-controls">
+        <h2>2. 尺寸</h2>
+        <div class="field">
+          <select id="size" disabled>
+            <option value="45x45">45 × 45 cm（標準方枕）</option>
+            <option value="40x40" disabled>40 × 40 cm — MVP 後解鎖</option>
+            <option value="50x50" disabled>50 × 50 cm — MVP 後解鎖</option>
+            <option value="30x50" disabled>30 × 50 cm 腰枕 — MVP 後解鎖</option>
+            <option value="65x65" disabled>65 × 65 cm Euro — MVP 後解鎖</option>
+          </select>
+        </div>
 
-      <h2>3. 布料</h2>
-      <div class="field">
-        <select id="fabric">
-          <option value="cotton">棉布 Cotton（啞光、微紋理）</option>
-          <option value="linen">麻 Linen（粗紋、霧面）</option>
-          <option value="velvet">絲絨 Velvet（柔光、細絨）</option>
-        </select>
+        <h2>3. 布料</h2>
+        <div class="field">
+          <select id="fabric">
+            <option value="cotton">棉布 Cotton（啞光、微紋理）</option>
+            <option value="linen">麻 Linen（粗紋、霧面）</option>
+            <option value="velvet">絲絨 Velvet（柔光、細絨）</option>
+          </select>
+        </div>
       </div>
 
       <h2>4. 列印面積</h2>
@@ -337,6 +364,25 @@
         "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
       }
     }
+  </script>
+  <script>
+    // Model selection toggle
+    document.addEventListener('DOMContentLoaded', () => {
+      const modelSelect = document.getElementById('model-select');
+      const uploadPillow = document.getElementById('upload-pillow');
+      const uploadMug = document.getElementById('upload-mug');
+      
+      modelSelect.addEventListener('change', (e) => {
+        const model = e.target.value;
+        if (model === 'pillow') {
+          uploadPillow.style.display = 'block';
+          uploadMug.style.display = 'none';
+        } else if (model === 'mug') {
+          uploadPillow.style.display = 'none';
+          uploadMug.style.display = 'block';
+        }
+      });
+    });
   </script>
   <script type="module" src="/pillow-studio.js"></script>
 </body>

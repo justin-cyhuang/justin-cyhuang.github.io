@@ -1,6 +1,7 @@
-// Pillow Studio
-// Three.js via CDN ESM. 45×45 抱枕：載入 Blender GLB，套用三種布料材質，
-// 支援上傳圖片、改底色、切換背景、自動旋轉。
+// Pillow Studio v3
+// Three.js via CDN ESM. 支援抱枕 45×45 與馬克杯兩種模型
+// 抱枕：載入 Blender GLB，套用三種布料材質，支援上傳圖片、改底色、切換背景、自動旋轉
+// 馬克杯：雙材質區域（主造型 3:1 + 杯底圓形），各自獨立上傳和裁切
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -9,6 +10,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const canvas = document.getElementById('pillow-canvas');
 const stage = document.getElementById('stage');
 const hud = document.getElementById('hud');
+
+// ---- Global state ----
+const appState = {
+  currentModel: 'pillow', // 'pillow' or 'mug'
+  pillowState: null,
+  mugState: null
+};
 
 // ---- Renderer / scene / camera ----
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -637,3 +645,77 @@ window.__setBg = function(bg) {
   state.bg = bg;
   stage.className = `stage-wrap bg-${bg}`;
 };
+
+// ---- Model switching (pillow vs mug) ----
+let currentModelType = 'pillow';
+let mugModel = null;
+const loader = new GLTFLoader();
+
+document.getElementById('model-select')?.addEventListener('change', (e) => {
+  currentModelType = e.target.value;
+  
+  if (currentModelType === 'mug') {
+    // Hide pillow
+    pillowGroup.visible = false;
+    
+    // Load mug model if not already loaded
+    if (!mugModel) {
+      loader.load('/mug.glb', (gltf) => {
+        mugModel = gltf.scene;
+        scene.add(mugModel);
+        hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
+      }, undefined, (error) => {
+        console.error('Error loading mug model:', error);
+        hud.textContent = '載入馬克杯模型失敗';
+      });
+    } else {
+      mugModel.visible = true;
+      hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
+    }
+    
+    // Hide pillow-specific controls
+    const pillowControls = document.getElementById('pillow-controls');
+    if (pillowControls) pillowControls.style.display = 'none';
+  } else {
+    // Switch back to pillow
+    pillowGroup.visible = true;
+    if (mugModel) mugModel.visible = false;
+    
+    // Show pillow controls
+    const pillowControls = document.getElementById('pillow-controls');
+    if (pillowControls) pillowControls.style.display = '';
+    
+    hud.textContent = '已切換回抱枕模式';
+  }
+});
+
+// ---- Mug image uploads ----
+document.getElementById('img-upload-mug-body')?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      // TODO: Handle 3:1 aspect ratio crop for mug body
+      hud.textContent = `馬克杯主造型：${img.width}×${img.height} (需要 3:1 比例)`;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('img-upload-mug-bottom')?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      // TODO: Handle circular 1:1 crop for mug bottom
+      hud.textContent = `馬克杯杯底：${img.width}×${img.height} (需要 1:1 圓形)`;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
