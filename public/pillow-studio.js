@@ -715,6 +715,8 @@ let currentModelType = 'pillow';
 let mugModel = null;
 let mugBodyMesh = null;  // Store reference to mug body mesh
 let mugBottomMesh = null; // Store reference to mug bottom mesh
+let mugHandleMeshes = []; // Store reference to handle meshes (excluded from texture)
+let mugBodyMeshes = [];   // Store reference to body meshes (printable area)
 const loader = new GLTFLoader();
 
 // ---- Apply texture to mug ----
@@ -737,32 +739,25 @@ function applyMugTexture(target, canvas) {
     mugBottomTexture = texture;
   }
   
-  // Apply textures to the mug mesh
-  // For now, we'll use the body texture as the main texture
-  // and we'll need to implement proper UV mapping for the bottom later
-  mugModel.traverse((child) => {
-    if (child.isMesh && child.name !== 'Plane') {
-      // For the main body texture, apply to all meshes
-      if (mugBodyTexture) {
-        child.material = new THREE.MeshStandardMaterial({
-          map: mugBodyTexture,
-          roughness: 0.3,
-          metalness: 0.0,
-          side: THREE.DoubleSide
-        });
-        child.material.needsUpdate = true;
-      }
-      
-      // TODO: Implement bottom texture mapping
-      // This requires either:
-      // 1. Separate mesh for the bottom in Blender
-      // 2. Multi-material setup with different UV channels
-      // 3. Custom shader to blend textures based on geometry position
-      // 
-      // For MVP, we'll just use the body texture on the whole mug
-      // The bottom texture is stored but not yet applied to a specific area
-    }
-  });
+  // Apply texture ONLY to body meshes (printable area)
+  // Handle meshes are excluded and remain white
+  if (mugBodyTexture) {
+    mugBodyMeshes.forEach(mesh => {
+      mesh.material = new THREE.MeshStandardMaterial({
+        map: mugBodyTexture,
+        roughness: 0.3,
+        metalness: 0.0,
+        side: THREE.DoubleSide
+      });
+      mesh.material.needsUpdate = true;
+    });
+  }
+  
+  // TODO: Implement bottom texture mapping
+  // For MVP, bottom texture is stored but not yet applied
+  // The handle remains white (no texture)
+  console.log(`Applied ${target} texture to ${mugBodyMeshes.length} body meshes`);
+  console.log(`Handle meshes (excluded): ${mugHandleMeshes.length}`);
 }
 
 document.getElementById('model-select')?.addEventListener('change', (e) => {
@@ -773,41 +768,26 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
     pillowGroup.visible = false;
     
     // Load mug model if not already loaded
+    // Now using separated models: body (printable) + handle (excluded)
     if (!mugModel) {
-      loader.load('/mug.glb', (gltf) => {
-        mugModel = gltf.scene;
-        // Scale down to 10% of original size
-        mugModel.scale.set(0.1, 0.1, 0.1);
+      // Create a container for both body and handle
+      mugModel = new THREE.Group();
+      scene.add(mugModel);
+      
+      // Scale the entire mug group
+      mugModel.scale.set(0.1, 0.1, 0.1);
+      
+      let bodyLoaded = false;
+      let handleLoaded = false;
+      
+      // Load body (printable area)
+      loader.load('/mug_body_only.glb', (gltf) => {
+        const bodyModel = gltf.scene;
         
-        // Set all meshes to white material with proper lighting
-        // Remove any plane/ground meshes
-        const toRemove = [];
-        mugModel.traverse((child) => {
+        // Set material for body meshes
+        bodyModel.traverse((child) => {
           if (child.isMesh) {
-            // Check if this is a plane (likely the table/ground)
-            // Planes typically have names like 'Plane', 'Ground', or very flat geometry
-            const geometry = child.geometry;
-            if (child.name.toLowerCase().includes('plane') || 
-                child.name.toLowerCase().includes('ground') ||
-                child.name.toLowerCase().includes('table')) {
-              toRemove.push(child);
-              return;
-            }
-            
-            // Also check geometry bounds - if it's very flat (thin in Y), it's likely a plane
-            if (geometry.boundingBox === null) geometry.computeBoundingBox();
-            const box = geometry.boundingBox;
-            const sizeY = box.max.y - box.min.y;
-            const sizeX = box.max.x - box.min.x;
-            const sizeZ = box.max.z - box.min.z;
-            
-            // If Y dimension is much smaller than X and Z, it's a horizontal plane
-            if (sizeY < 0.1 && (sizeX > 1 || sizeZ > 1)) {
-              toRemove.push(child);
-              return;
-            }
-            
-            // Set material for the mug itself
+            mugBodyMeshes.push(child);
             child.material = new THREE.MeshStandardMaterial({
               color: 0xffffff,
               roughness: 0.3,
@@ -819,16 +799,47 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
           }
         });
         
-        // Remove the plane meshes
-        toRemove.forEach(mesh => {
-          if (mesh.parent) mesh.parent.remove(mesh);
+        mugModel.add(bodyModel);
+        bodyLoaded = true;
+        console.log(`Mug body loaded: ${mugBodyMeshes.length} meshes`);
+        
+        if (bodyLoaded && handleLoaded) {
+          hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
+        }
+      }, undefined, (error) => {
+        console.error('Error loading mug body:', error);
+        hud.textContent = '載入馬克杯模型失敗（杯身）';
+      });
+      
+      // Load handle (excluded from texture)
+      loader.load('/mug_handle_only.glb', (gltf) => {
+        const handleModel = gltf.scene;
+        
+        // Set material for handle meshes (white, no texture)
+        handleModel.traverse((child) => {
+          if (child.isMesh) {
+            mugHandleMeshes.push(child);
+            child.material = new THREE.MeshStandardMaterial({
+              color: 0xffffff,
+              roughness: 0.3,
+              metalness: 0.0,
+              side: THREE.DoubleSide
+            });
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
         });
         
-        scene.add(mugModel);
-        hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
+        mugModel.add(handleModel);
+        handleLoaded = true;
+        console.log(`Mug handle loaded: ${mugHandleMeshes.length} meshes`);
+        
+        if (bodyLoaded && handleLoaded) {
+          hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
+        }
       }, undefined, (error) => {
-        console.error('Error loading mug model:', error);
-        hud.textContent = '載入馬克杯模型失敗';
+        console.error('Error loading mug handle:', error);
+        hud.textContent = '載入馬克杯模型失敗（手把）';
       });
     } else {
       mugModel.visible = true;
