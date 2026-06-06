@@ -725,8 +725,7 @@ let currentModelType = 'pillow';
 let mugModel = null;
 let mugBodyMesh = null;  // Store reference to mug body mesh
 let mugBottomMesh = null; // Store reference to mug bottom mesh
-let mugHandleMeshes = []; // Store reference to handle meshes (excluded from texture)
-let mugBodyMeshes = [];   // Store reference to body meshes (printable area)
+let mugBodyMeshes = [];   // Store reference to mug meshes (with UV filtering)
 const loader = new GLTFLoader();
 
 // ---- Apply texture to mug ----
@@ -752,25 +751,18 @@ function applyMugTexture(target, canvas) {
     mugBottomTexture = texture;
   }
   
-  // Apply texture ONLY to body meshes (printable area)
-  // Handle meshes are excluded and remain white
+  // Apply texture to mug meshes using shader uniforms
   if (mugBodyTexture) {
     mugBodyMeshes.forEach(mesh => {
-      mesh.material = new THREE.MeshStandardMaterial({
-        map: mugBodyTexture,
-        roughness: 0.3,
-        metalness: 0.0,
-        side: THREE.DoubleSide
-      });
-      mesh.material.needsUpdate = true;
+      if (mesh.material.uniforms) {
+        mesh.material.uniforms.map.value = mugBodyTexture;
+        mesh.material.uniforms.hasTexture.value = true;
+        mesh.material.needsUpdate = true;
+      }
     });
   }
   
-  // TODO: Implement bottom texture mapping
-  // For MVP, bottom texture is stored but not yet applied
-  // The handle remains white (no texture)
-  console.log(`Applied ${target} texture to ${mugBodyMeshes.length} body meshes`);
-  console.log(`Handle meshes (excluded): ${mugHandleMeshes.length}`);
+  console.log(`Applied ${target} texture to ${mugBodyMeshes.length} meshes with UV filtering`);
 }
 
 document.getElementById('model-select')?.addEventListener('change', (e) => {
@@ -791,68 +783,99 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
       mugModel.scale.set(0.1, 0.1, 0.1);
       
       let bodyLoaded = false;
-      let handleLoaded = false;
       
-      // Load body (printable area)
-      loader.load('/mug_body_only.glb', (gltf) => {
-        const bodyModel = gltf.scene;
+      // Load mug model (printable area only with UV filtering)
+      loader.load('/mug_printable.glb', async (gltf) => {
+        const mugMesh = gltf.scene;
         
-        // Set material for body meshes
-        bodyModel.traverse((child) => {
+        // Load UV config for printable zone
+        let uvConfig = null;
+        try {
+          const response = await fetch('/mug_uv_config.json');
+          const data = await response.json();
+          uvConfig = data.printable_zone;
+          console.log('UV printable zone loaded:', uvConfig);
+        } catch (error) {
+          console.warn('UV config not found, using full range');
+          uvConfig = { u_min: 0, u_max: 1, v_min: 0, v_max: 1 };
+        }
+        
+        // Set material for mug meshes with UV filtering
+        mugMesh.traverse((child) => {
           if (child.isMesh) {
             mugBodyMeshes.push(child);
-            child.material = new THREE.MeshStandardMaterial({
-              color: 0xffffff,
-              roughness: 0.3,
-              metalness: 0.0,
+            
+            // Custom shader material with UV range filtering
+            child.material = new THREE.ShaderMaterial({
+              uniforms: {
+                map: { value: null },
+                hasTexture: { value: false },
+                uvMin: { value: new THREE.Vector2(uvConfig.u_min, uvConfig.v_min) },
+                uvMax: { value: new THREE.Vector2(uvConfig.u_max, uvConfig.v_max) },
+                baseColor: { value: new THREE.Color(0xffffff) }
+              },
+              vertexShader: `
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                varying vec3 vPosition;
+                
+                void main() {
+                  vUv = uv;
+                  vNormal = normalize(normalMatrix * normal);
+                  vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+                  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+              `,
+              fragmentShader: `
+                uniform sampler2D map;
+                uniform bool hasTexture;
+                uniform vec2 uvMin;
+                uniform vec2 uvMax;
+                uniform vec3 baseColor;
+                
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                varying vec3 vPosition;
+                
+                void main() {
+                  vec3 color = baseColor;
+                  
+                  if (hasTexture) {
+                    // Check if UV is within printable range
+                    bool inRange = vUv.x >= uvMin.x && vUv.x <= uvMax.x &&
+                                   vUv.y >= uvMin.y && vUv.y <= uvMax.y;
+                    
+                    if (inRange) {
+                      // Normalize UV to [0,1] within printable range
+                      vec2 normalizedUV = (vUv - uvMin) / (uvMax - uvMin);
+                      color = texture2D(map, normalizedUV).rgb;
+                    }
+                  }
+                  
+                  // Simple lighting
+                  vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+                  float diff = max(dot(vNormal, lightDir), 0.0);
+                  vec3 ambient = vec3(0.3);
+                  vec3 lighting = ambient + diff * vec3(0.7);
+                  
+                  gl_FragColor = vec4(color * lighting, 1.0);
+                }
+              `,
               side: THREE.DoubleSide
             });
+            
             child.castShadow = true;
             child.receiveShadow = true;
           }
         });
         
-        mugModel.add(bodyModel);
+        mugModel.add(mugMesh);
         bodyLoaded = true;
-        console.log(`Mug body loaded: ${mugBodyMeshes.length} meshes`);
-        
-        if (bodyLoaded && handleLoaded) {
-          hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
-        }
+        console.log(`Mug model loaded: ${mugBodyMeshes.length} meshes`);
+        hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
       }, undefined, (error) => {
-        console.error('Error loading mug body:', error);
-        hud.textContent = '載入馬克杯模型失敗（杯身）';
-      });
-      
-      // Load handle (excluded from texture)
-      loader.load('/mug_handle_only.glb', (gltf) => {
-        const handleModel = gltf.scene;
-        
-        // Set material for handle meshes (white, no texture)
-        handleModel.traverse((child) => {
-          if (child.isMesh) {
-            mugHandleMeshes.push(child);
-            child.material = new THREE.MeshStandardMaterial({
-              color: 0xffffff,
-              roughness: 0.3,
-              metalness: 0.0,
-              side: THREE.DoubleSide
-            });
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
-        
-        mugModel.add(handleModel);
-        handleLoaded = true;
-        console.log(`Mug handle loaded: ${mugHandleMeshes.length} meshes`);
-        
-        if (bodyLoaded && handleLoaded) {
-          hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
-        }
-      }, undefined, (error) => {
-        console.error('Error loading mug handle:', error);
-        hud.textContent = '載入馬克杯模型失敗（手把）';
+        console.error('Error loading mug:', error);
+        hud.textContent = '載入馬克杯模型失敗';
       });
     } else {
       mugModel.visible = true;
