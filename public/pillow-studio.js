@@ -784,8 +784,8 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
       
       let bodyLoaded = false;
       
-      // Load mug model (printable area only with UV filtering)
-      loader.load('/mug_printable.glb', async (gltf) => {
+      // Load complete mug model (UV filtering in shader, not geometry)
+      loader.load('/mug_complete.glb', async (gltf) => {
         const mugMesh = gltf.scene;
         
         // Load UV config for printable zone
@@ -817,12 +817,18 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
               vertexShader: `
                 varying vec2 vUv;
                 varying vec3 vNormal;
-                varying vec3 vPosition;
+                varying vec3 vWorldNormal;
+                varying vec3 vWorldPosition;
                 
                 void main() {
                   vUv = uv;
                   vNormal = normalize(normalMatrix * normal);
-                  vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+                  
+                  // World space position and normal for radial check
+                  vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                  vWorldPosition = worldPos.xyz;
+                  vWorldNormal = normalize(mat3(modelMatrix) * normal);
+                  
                   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                 }
               `,
@@ -835,7 +841,8 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
                 
                 varying vec2 vUv;
                 varying vec3 vNormal;
-                varying vec3 vPosition;
+                varying vec3 vWorldNormal;
+                varying vec3 vWorldPosition;
                 
                 void main() {
                   vec3 color = baseColor;
@@ -845,7 +852,14 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
                     bool inRange = vUv.x >= uvMin.x && vUv.x <= uvMax.x &&
                                    vUv.y >= uvMin.y && vUv.y <= uvMax.y;
                     
-                    if (inRange) {
+                    // Check if face is outward-facing (for mug: radial direction)
+                    // Mug center is approximately at origin in XY
+                    vec2 radialDir = normalize(vWorldPosition.xy);
+                    vec2 normalDir = normalize(vWorldNormal.xy);
+                    float outwardDot = dot(radialDir, normalDir);
+                    
+                    // Only apply texture to outward-facing surfaces in UV range
+                    if (inRange && outwardDot > 0.1) {
                       // Normalize UV to [0,1] within printable range
                       vec2 normalizedUV = (vUv - uvMin) / (uvMax - uvMin);
                       color = texture2D(map, normalizedUV).rgb;
