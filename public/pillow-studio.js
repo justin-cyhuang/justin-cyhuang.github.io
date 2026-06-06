@@ -427,44 +427,68 @@ document.getElementById('img-upload').addEventListener('change', (e) => {
 // ---- Bake processed image to 1024×1024 RGBA canvas ----
 // mode='crop'：圖 cover 滿框，超出裁掉（offsetX/Y in [-1,1], scale>=1）
 // mode='fit' ：圖 contain 進框置中，空白 alpha=0
-function bakeCanvas(img, mode, transform) {
+function bakeCanvas(img, mode, transform, aspectRatio = 1) {
   const SIZE = 1024;
   const c = document.createElement('canvas');
-  c.width = c.height = SIZE;
+  
+  // Set canvas dimensions based on aspect ratio
+  if (aspectRatio === 3) {
+    c.width = SIZE * 3;
+    c.height = SIZE;
+  } else {
+    c.width = c.height = SIZE;
+  }
+  
   const ctx = c.getContext('2d');
-  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.clearRect(0, 0, c.width, c.height);
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
   if (mode === 'fit') {
     // contain
-    const s = Math.min(SIZE / iw, SIZE / ih);
+    const s = Math.min(c.width / iw, c.height / ih);
     const dw = iw * s;
     const dh = ih * s;
-    ctx.drawImage(img, (SIZE - dw) / 2, (SIZE - dh) / 2, dw, dh);
+    ctx.drawImage(img, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh);
   } else {
     // crop / cover
-    const baseScale = Math.max(SIZE / iw, SIZE / ih);
+    const baseScale = Math.max(c.width / iw, c.height / ih);
     const s = baseScale * (transform.scale || 1);
     const dw = iw * s;
     const dh = ih * s;
     // offset 範圍：可拖到圖左/右/上/下邊緣對齊框邊
-    const maxOffX = Math.max(0, (dw - SIZE) / 2);
-    const maxOffY = Math.max(0, (dh - SIZE) / 2);
+    const maxOffX = Math.max(0, (dw - c.width) / 2);
+    const maxOffY = Math.max(0, (dh - c.height) / 2);
     const offX = (transform.offsetX || 0) * maxOffX;
     const offY = (transform.offsetY || 0) * maxOffY;
-    ctx.drawImage(img, (SIZE - dw) / 2 + offX, (SIZE - dh) / 2 + offY, dw, dh);
+    ctx.drawImage(img, (c.width - dw) / 2 + offX, (c.height - dh) / 2 + offY, dw, dh);
   }
   return c;
 }
 
 // ---- Crop Modal ----
-function openCropModal(img) {
+// aspectRatio: 1 for square, 3 for 3:1, 'circle' for circular crop
+function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
   const overlay = document.getElementById('crop-overlay');
   const preview = document.getElementById('crop-preview');
   const modeBtns = overlay.querySelectorAll('[data-crop-mode]');
   const aspectLabel = document.getElementById('crop-aspect');
   const ar = img.naturalWidth / img.naturalHeight;
-  aspectLabel.textContent = `原圖 ${img.naturalWidth}×${img.naturalHeight} · 比例 ${ar.toFixed(2)}:1 · 抱枕 1:1`;
+  
+  // Update label based on target
+  let targetDesc = '';
+  if (targetSlot === 'pillow') {
+    targetDesc = '抱枕 1:1';
+  } else if (targetSlot === 'mug-body') {
+    targetDesc = '馬克杯主造型 3:1';
+    preview.classList.add('aspect-3-1');
+    preview.classList.remove('aspect-circle');
+  } else if (targetSlot === 'mug-bottom') {
+    targetDesc = '馬克杯杯底 1:1 圓形';
+    preview.classList.add('aspect-circle');
+    preview.classList.remove('aspect-3-1');
+  }
+  
+  aspectLabel.textContent = `原圖 ${img.naturalWidth}×${img.naturalHeight} · 比例 ${ar.toFixed(2)}:1 · ${targetDesc}`;
 
   let mode = 'crop';                              // 'crop' | 'fit'
   let t = { offsetX: 0, offsetY: 0, scale: 1 };   // crop 模式下的偏移/縮放
@@ -474,22 +498,41 @@ function openCropModal(img) {
   function renderPreview() {
     const ctx = preview.getContext('2d');
     const W = preview.width;
-    ctx.clearRect(0, 0, W, W);
+    const H = aspectRatio === 3 ? Math.round(W / 3) : W;
+    
+    // Adjust canvas size for 3:1
+    if (aspectRatio === 3) {
+      preview.height = H;
+    } else {
+      preview.height = W;
+    }
+    
+    ctx.clearRect(0, 0, W, H);
     // 棋盤格底（提示透明區）
     const cell = 16;
-    for (let y = 0; y < W; y += cell) {
+    for (let y = 0; y < H; y += cell) {
       for (let x = 0; x < W; x += cell) {
         ctx.fillStyle = ((x / cell + y / cell) % 2 === 0) ? '#eee' : '#ddd';
         ctx.fillRect(x, y, cell, cell);
       }
     }
     // 把 bake 結果縮到 preview
-    const baked = bakeCanvas(img, mode, t);
-    ctx.drawImage(baked, 0, 0, W, W);
-    // 1:1 框線
+    const baked = bakeCanvas(img, mode, t, aspectRatio);
+    ctx.drawImage(baked, 0, 0, W, H);
+    
+    // Draw frame
     ctx.strokeStyle = '#d97757';
     ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, W - 2, W - 2);
+    
+    if (targetSlot === 'mug-bottom') {
+      // Draw circle for bottom
+      ctx.beginPath();
+      ctx.arc(W/2, W/2, W/2 - 2, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      // Draw rectangle
+      ctx.strokeRect(1, 1, W - 2, H - 2);
+    }
   }
 
   modeBtns.forEach(b => {
@@ -536,14 +579,35 @@ function openCropModal(img) {
 
   // 確認/取消
   document.getElementById('crop-confirm').onclick = () => {
-    state.processedImageCanvas = bakeCanvas(img, mode, t);
-    rebuildPillow();
-    hud.textContent = `image ready · ${mode === 'crop' ? '裁切' : '保留全圖'} · ${img.width}×${img.height}`;
+    const bakedCanvas = bakeCanvas(img, mode, t, aspectRatio);
+    
+    if (targetSlot === 'pillow') {
+      state.processedImageCanvas = bakedCanvas;
+      rebuildPillow();
+      hud.textContent = `image ready · ${mode === 'crop' ? '裁切' : '保留全圖'} · ${img.width}×${img.height}`;
+    } else if (targetSlot === 'mug-body') {
+      applyMugTexture('body', bakedCanvas);
+      hud.textContent = `馬克杯主造型已套用 · ${mode === 'crop' ? '裁切' : '保留全圖'} · ${img.width}×${img.height}`;
+    } else if (targetSlot === 'mug-bottom') {
+      applyMugTexture('bottom', bakedCanvas);
+      hud.textContent = `馬克杯杯底已套用 · ${mode === 'crop' ? '裁切' : '保留全圖'} · ${img.width}×${img.height}`;
+    }
+    
+    // Reset preview classes
+    preview.classList.remove('aspect-3-1', 'aspect-circle');
     overlay.style.display = 'none';
   };
   document.getElementById('crop-cancel').onclick = () => {
+    // Reset preview classes
+    preview.classList.remove('aspect-3-1', 'aspect-circle');
     overlay.style.display = 'none';
-    document.getElementById('img-upload').value = '';
+    if (targetSlot === 'pillow') {
+      document.getElementById('img-upload').value = '';
+    } else if (targetSlot === 'mug-body') {
+      document.getElementById('img-upload-mug-body').value = '';
+    } else if (targetSlot === 'mug-bottom') {
+      document.getElementById('img-upload-mug-bottom').value = '';
+    }
   };
 
   // 預設 crop 模式
@@ -649,7 +713,57 @@ window.__setBg = function(bg) {
 // ---- Model switching (pillow vs mug) ----
 let currentModelType = 'pillow';
 let mugModel = null;
+let mugBodyMesh = null;  // Store reference to mug body mesh
+let mugBottomMesh = null; // Store reference to mug bottom mesh
 const loader = new GLTFLoader();
+
+// ---- Apply texture to mug ----
+let mugBodyTexture = null;
+let mugBottomTexture = null;
+
+function applyMugTexture(target, canvas) {
+  if (!mugModel) {
+    console.warn('Mug model not loaded yet');
+    return;
+  }
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  
+  if (target === 'body') {
+    mugBodyTexture = texture;
+  } else if (target === 'bottom') {
+    mugBottomTexture = texture;
+  }
+  
+  // Apply textures to the mug mesh
+  // For now, we'll use the body texture as the main texture
+  // and we'll need to implement proper UV mapping for the bottom later
+  mugModel.traverse((child) => {
+    if (child.isMesh && child.name !== 'Plane') {
+      // For the main body texture, apply to all meshes
+      if (mugBodyTexture) {
+        child.material = new THREE.MeshStandardMaterial({
+          map: mugBodyTexture,
+          roughness: 0.3,
+          metalness: 0.0,
+          side: THREE.DoubleSide
+        });
+        child.material.needsUpdate = true;
+      }
+      
+      // TODO: Implement bottom texture mapping
+      // This requires either:
+      // 1. Separate mesh for the bottom in Blender
+      // 2. Multi-material setup with different UV channels
+      // 3. Custom shader to blend textures based on geometry position
+      // 
+      // For MVP, we'll just use the body texture on the whole mug
+      // The bottom texture is stored but not yet applied to a specific area
+    }
+  });
+}
 
 document.getElementById('model-select')?.addEventListener('change', (e) => {
   currentModelType = e.target.value;
@@ -745,8 +859,7 @@ document.getElementById('img-upload-mug-body')?.addEventListener('change', (e) =
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
-      // TODO: Handle 3:1 aspect ratio crop for mug body
-      hud.textContent = `馬克杯主造型：${img.width}×${img.height} (需要 3:1 比例)`;
+      openCropModal(img, 3, 'mug-body');
     };
     img.src = ev.target.result;
   };
@@ -760,8 +873,7 @@ document.getElementById('img-upload-mug-bottom')?.addEventListener('change', (e)
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
-      // TODO: Handle circular 1:1 crop for mug bottom
-      hud.textContent = `馬克杯杯底：${img.width}×${img.height} (需要 1:1 圓形)`;
+      openCropModal(img, 1, 'mug-bottom');
     };
     img.src = ev.target.result;
   };
