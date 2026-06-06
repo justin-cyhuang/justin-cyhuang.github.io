@@ -664,6 +664,21 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
         mugModel = gltf.scene;
         // Scale down to 10% of original size
         mugModel.scale.set(0.1, 0.1, 0.1);
+        
+        // Set all meshes to white material with proper lighting
+        mugModel.traverse((child) => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+              color: 0xffffff,
+              roughness: 0.3,
+              metalness: 0.0,
+              side: THREE.DoubleSide
+            });
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        
         scene.add(mugModel);
         hud.textContent = '馬克杯模型已載入 · 請上傳主造型和杯底圖案';
       }, undefined, (error) => {
