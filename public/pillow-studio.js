@@ -740,9 +740,8 @@ function applyMugTexture(target, canvas) {
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   texture.colorSpace = THREE.SRGBColorSpace;
-  // Three.js CanvasTexture defaults to flipY=true, which is correct for most WebGL use cases
-  // But our UV mapping expects non-flipped texture, so we explicitly set it
-  texture.flipY = true;  // Keep default WebGL behavior
+  // Our UV mapping and shader expect non-flipped texture
+  texture.flipY = false;
   
   if (target === 'body') {
     mugBodyTexture = texture;
