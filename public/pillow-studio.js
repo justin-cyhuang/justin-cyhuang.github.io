@@ -524,8 +524,8 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
       }
     }
     // 把 bake 結果縮到 preview
-    const shouldFlip = (targetSlot === 'mug-body' || targetSlot === 'mug-bottom');
-    const baked = bakeCanvas(img, mode, t, aspectRatio, shouldFlip);
+    // No flip needed - handle orientation in 3D texture if required
+    const baked = bakeCanvas(img, mode, t, aspectRatio, false);
     ctx.drawImage(baked, 0, 0, W, H);
     
     // Draw frame
@@ -587,9 +587,8 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
 
   // 確認/取消
   document.getElementById('crop-confirm').onclick = () => {
-    // Flip vertical for mug textures (UV mapping is flipped)
-    const shouldFlip = (targetSlot === 'mug-body' || targetSlot === 'mug-bottom');
-    const bakedCanvas = bakeCanvas(img, mode, t, aspectRatio, shouldFlip);
+    // No flip needed - handle orientation in 3D texture if required
+    const bakedCanvas = bakeCanvas(img, mode, t, aspectRatio, false);
     
     if (targetSlot === 'pillow') {
       state.processedImageCanvas = bakedCanvas;
