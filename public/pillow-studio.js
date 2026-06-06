@@ -427,7 +427,7 @@ document.getElementById('img-upload').addEventListener('change', (e) => {
 // ---- Bake processed image to 1024×1024 RGBA canvas ----
 // mode='crop'：圖 cover 滿框，超出裁掉（offsetX/Y in [-1,1], scale>=1）
 // mode='fit' ：圖 contain 進框置中，空白 alpha=0
-function bakeCanvas(img, mode, transform, aspectRatio = 1) {
+function bakeCanvas(img, mode, transform, aspectRatio = 1, flipVertical = false) {
   const SIZE = 1024;
   const c = document.createElement('canvas');
   
@@ -440,6 +440,13 @@ function bakeCanvas(img, mode, transform, aspectRatio = 1) {
   }
   
   const ctx = c.getContext('2d');
+  
+  // Apply vertical flip if requested
+  if (flipVertical) {
+    ctx.translate(0, c.height);
+    ctx.scale(1, -1);
+  }
+  
   ctx.clearRect(0, 0, c.width, c.height);
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
@@ -517,7 +524,8 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
       }
     }
     // 把 bake 結果縮到 preview
-    const baked = bakeCanvas(img, mode, t, aspectRatio);
+    const shouldFlip = (targetSlot === 'mug-body' || targetSlot === 'mug-bottom');
+    const baked = bakeCanvas(img, mode, t, aspectRatio, shouldFlip);
     ctx.drawImage(baked, 0, 0, W, H);
     
     // Draw frame
@@ -579,7 +587,9 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
 
   // 確認/取消
   document.getElementById('crop-confirm').onclick = () => {
-    const bakedCanvas = bakeCanvas(img, mode, t, aspectRatio);
+    // Flip vertical for mug textures (UV mapping is flipped)
+    const shouldFlip = (targetSlot === 'mug-body' || targetSlot === 'mug-bottom');
+    const bakedCanvas = bakeCanvas(img, mode, t, aspectRatio, shouldFlip);
     
     if (targetSlot === 'pillow') {
       state.processedImageCanvas = bakedCanvas;
@@ -732,7 +742,9 @@ function applyMugTexture(target, canvas) {
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.flipY = false;  // Don't flip — canvas is already correct orientation
+  // Three.js CanvasTexture defaults to flipY=true, which is correct for most WebGL use cases
+  // But our UV mapping expects non-flipped texture, so we explicitly set it
+  texture.flipY = true;  // Keep default WebGL behavior
   
   if (target === 'body') {
     mugBodyTexture = texture;
