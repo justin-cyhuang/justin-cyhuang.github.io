@@ -832,14 +832,18 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
                     bool isPrintable = inVRange && !inHandleU;
                     
                     if (isPrintable && outwardDot > 0.1) {
-                      // Remap U: two segments [0,0.40]∪[0.60,1.00] → [0,1]
-                      float remappedU;
+                      // Convert to continuous U space [0, 0.80] (skip handle gap)
+                      float continuousU;
                       if (vUv.x < handleUMin) {
-                        remappedU = vUv.x / 0.80;                        // [0, 0.40] → [0, 0.5]
+                        continuousU = vUv.x;                    // [0, 0.40]
                       } else {
-                        remappedU = (vUv.x - handleUMax) / 0.80 + 0.5;   // [0.60, 1.00] → [0.5, 1.0]
+                        continuousU = vUv.x - 0.20;             // [0.60, 1.00] → [0.40, 0.80]
                       }
-                      float remappedV = (vUv.y - vMin) / (vMax - vMin);   // [vMin, vMax] → [0, 1]
+                      // Offset so texture starts at U=0.098 instead of U=0
+                      // This shifts the image seam away from the front center
+                      float offsetU = mod(continuousU - 0.098, 0.80);
+                      float remappedU = offsetU / 0.80;
+                      float remappedV = (vUv.y - vMin) / (vMax - vMin);
                       color = texture2D(bodyMap, vec2(remappedU, remappedV)).rgb;
                     }
                   }
