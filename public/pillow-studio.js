@@ -432,8 +432,8 @@ function bakeCanvas(img, mode, transform, aspectRatio = 1, flipVertical = false)
   const c = document.createElement('canvas');
   
   // Set canvas dimensions based on aspect ratio
-  if (aspectRatio === 3) {
-    c.width = SIZE * 3;
+  if (aspectRatio === 3.5) {
+    c.width = Math.round(SIZE * 3.5);
     c.height = SIZE;
   } else {
     c.width = c.height = SIZE;
@@ -473,7 +473,7 @@ function bakeCanvas(img, mode, transform, aspectRatio = 1, flipVertical = false)
 }
 
 // ---- Crop Modal ----
-// aspectRatio: 1 for square, 3 for 3:1, 'circle' for circular crop
+// aspectRatio: 1 for square, 3.5 for 3.5:1 (mug body), 'circle' for circular crop
 function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
   const overlay = document.getElementById('crop-overlay');
   const preview = document.getElementById('crop-preview');
@@ -485,13 +485,13 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
   if (targetSlot === 'pillow') {
     targetDesc = '抱枕 1:1';
   } else if (targetSlot === 'mug-body') {
-    targetDesc = '馬克杯主造型 3:1';
-    preview.classList.add('aspect-3-1');
+    targetDesc = '馬克杯主造型 3.5:1';
+    preview.classList.add('aspect-3-5-1');
     preview.classList.remove('aspect-circle');
   } else if (targetSlot === 'mug-bottom') {
     targetDesc = '馬克杯杯底 1:1 圓形';
     preview.classList.add('aspect-circle');
-    preview.classList.remove('aspect-3-1');
+    preview.classList.remove('aspect-3-5-1');
   }
   
   aspectLabel.textContent = `原圖 ${img.naturalWidth}×${img.naturalHeight} · 比例 ${ar.toFixed(2)}:1 · ${targetDesc}`;
@@ -503,10 +503,10 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
   function renderPreview() {
     const ctx = preview.getContext('2d');
     const W = preview.width;
-    const H = aspectRatio === 3 ? Math.round(W / 3) : W;
+    const H = aspectRatio === 3.5 ? Math.round(W / 3.5) : W;
     
     // Adjust canvas size for 3:1
-    if (aspectRatio === 3) {
+    if (aspectRatio === 3.5) {
       preview.height = H;
     } else {
       preview.height = W;
@@ -720,22 +720,25 @@ function applyMugTexture(target, canvas) {
   
   if (target === 'body') {
     mugBodyTexture = texture;
-  } else if (target === 'bottom') {
-    mugBottomTexture = texture;
-  }
-  
-  // Apply texture to mug meshes using shader uniforms
-  if (mugBodyTexture) {
     mugBodyMeshes.forEach(mesh => {
       if (mesh.material.uniforms) {
-        mesh.material.uniforms.map.value = mugBodyTexture;
-        mesh.material.uniforms.hasTexture.value = true;
+        mesh.material.uniforms.bodyMap.value = mugBodyTexture;
+        mesh.material.uniforms.hasBodyTexture.value = true;
+        mesh.material.needsUpdate = true;
+      }
+    });
+  } else if (target === 'bottom') {
+    mugBottomTexture = texture;
+    mugBodyMeshes.forEach(mesh => {
+      if (mesh.material.uniforms) {
+        mesh.material.uniforms.bottomMap.value = mugBottomTexture;
+        mesh.material.uniforms.hasBottomTexture.value = true;
         mesh.material.needsUpdate = true;
       }
     });
   }
   
-  console.log(`Applied ${target} texture to ${mugBodyMeshes.length} meshes with UV filtering`);
+  console.log(`Applied ${target} texture to ${mugBodyMeshes.length} meshes`);
 }
 
 document.getElementById('model-select')?.addEventListener('change', (e) => {
@@ -752,39 +755,33 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
       mugModel = new THREE.Group();
       scene.add(mugModel);
       
-      // Scale the entire mug group
-      mugModel.scale.set(0.1, 0.1, 0.1);
+      // New model is larger than old one, scale 0.45
+      mugModel.scale.set(0.45, 0.45, 0.45);
       
       let bodyLoaded = false;
       
-      // Load complete mug model (UV filtering in shader, not geometry)
-      loader.load('/mug_complete.glb', async (gltf) => {
+      // Load new mug model (Blender 5.0, seam-based UV unwrap)
+      // UV layout: outer body V=[0,0.5], bottom V=[0.5,0.99]
+      // Handle excluded at U=[0.40, 0.60]
+      // Printable zone: U∈[0,0.40]∪[0.60,1.00], V∈[0.059,0.447]
+      loader.load('/mug_new.glb', (gltf) => {
         const mugMesh = gltf.scene;
         
-        // Load UV config for printable zone
-        let uvConfig = null;
-        try {
-          const response = await fetch('/mug_uv_config.json');
-          const data = await response.json();
-          uvConfig = data.printable_zone;
-          console.log('UV printable zone loaded:', uvConfig);
-        } catch (error) {
-          console.warn('UV config not found, using full range');
-          uvConfig = { u_min: 0, u_max: 1, v_min: 0, v_max: 1 };
-        }
-        
-        // Set material for mug meshes with UV filtering
         mugMesh.traverse((child) => {
           if (child.isMesh) {
             mugBodyMeshes.push(child);
             
-            // Custom shader material with UV range filtering
             child.material = new THREE.ShaderMaterial({
               uniforms: {
-                map: { value: null },
-                hasTexture: { value: false },
-                uvMin: { value: new THREE.Vector2(uvConfig.u_min, uvConfig.v_min) },
-                uvMax: { value: new THREE.Vector2(uvConfig.u_max, uvConfig.v_max) },
+                bodyMap: { value: null },
+                bottomMap: { value: null },
+                hasBodyTexture: { value: false },
+                hasBottomTexture: { value: false },
+                // Printable zone constants (no external JSON needed)
+                handleUMin: { value: 0.40 },
+                handleUMax: { value: 0.60 },
+                vMin: { value: 0.059 },
+                vMax: { value: 0.447 },
                 baseColor: { value: new THREE.Color(0xffffff) }
               },
               vertexShader: `
@@ -797,7 +794,6 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
                   vUv = uv;
                   vNormal = normalize(normalMatrix * normal);
                   
-                  // World space position and normal for radial check
                   vec4 worldPos = modelMatrix * vec4(position, 1.0);
                   vWorldPosition = worldPos.xyz;
                   vWorldNormal = normalize(mat3(modelMatrix) * normal);
@@ -806,10 +802,14 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
                 }
               `,
               fragmentShader: `
-                uniform sampler2D map;
-                uniform bool hasTexture;
-                uniform vec2 uvMin;
-                uniform vec2 uvMax;
+                uniform sampler2D bodyMap;
+                uniform sampler2D bottomMap;
+                uniform bool hasBodyTexture;
+                uniform bool hasBottomTexture;
+                uniform float handleUMin;
+                uniform float handleUMax;
+                uniform float vMin;
+                uniform float vMax;
                 uniform vec3 baseColor;
                 
                 varying vec2 vUv;
@@ -820,22 +820,44 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
                 void main() {
                   vec3 color = baseColor;
                   
-                  if (hasTexture) {
-                    // Check if UV is within printable range
-                    bool inRange = vUv.x >= uvMin.x && vUv.x <= uvMax.x &&
-                                   vUv.y >= uvMin.y && vUv.y <= uvMax.y;
+                  // Radial direction in XZ plane (GLB Y-up, mug axis = Y)
+                  vec2 radialDir = normalize(vWorldPosition.xz);
+                  vec2 normalDir = normalize(vWorldNormal.xz);
+                  float outwardDot = dot(radialDir, normalDir);
+                  
+                  // --- Body texture (outer surface, V < 0.5) ---
+                  if (hasBodyTexture) {
+                    bool inVRange = vUv.y >= vMin && vUv.y <= vMax;
+                    bool inHandleU = vUv.x >= handleUMin && vUv.x <= handleUMax;
+                    bool isPrintable = inVRange && !inHandleU;
                     
-                    // Check if face is outward-facing (for mug: radial direction)
-                    // Mug center is approximately at origin in XY
-                    vec2 radialDir = normalize(vWorldPosition.xy);
-                    vec2 normalDir = normalize(vWorldNormal.xy);
-                    float outwardDot = dot(radialDir, normalDir);
-                    
-                    // Only apply texture to outward-facing surfaces in UV range
-                    if (inRange && outwardDot > 0.1) {
-                      // Normalize UV to [0,1] within printable range
-                      vec2 normalizedUV = (vUv - uvMin) / (uvMax - uvMin);
-                      color = texture2D(map, normalizedUV).rgb;
+                    if (isPrintable && outwardDot > 0.1) {
+                      // Remap U: two segments [0,0.40]∪[0.60,1.00] → [0,1]
+                      float remappedU;
+                      if (vUv.x < handleUMin) {
+                        remappedU = vUv.x / 0.80;                        // [0, 0.40] → [0, 0.5]
+                      } else {
+                        remappedU = (vUv.x - handleUMax) / 0.80 + 0.5;   // [0.60, 1.00] → [0.5, 1.0]
+                      }
+                      float remappedV = (vUv.y - vMin) / (vMax - vMin);   // [vMin, vMax] → [0, 1]
+                      color = texture2D(bodyMap, vec2(remappedU, remappedV)).rgb;
+                    }
+                  }
+                  
+                  // --- Bottom texture (V > 0.5) ---
+                  if (hasBottomTexture && vUv.y > 0.50) {
+                    // Remap V from [0.50, 0.99] → [0, 1]
+                    float bv = (vUv.y - 0.50) / 0.49;
+                    // Polar mapping: remap U,V to circular coordinates
+                    float bu = vUv.x;
+                    // Convert from linear UV to polar for circular bottom
+                    float angle = bu * 6.28318;  // U → angle [0, 2π]
+                    float radius = bv;            // V → radius [0, 1]
+                    // Convert polar to cartesian for texture lookup
+                    float texU = 0.5 + radius * cos(angle) * 0.5;
+                    float texV = 0.5 + radius * sin(angle) * 0.5;
+                    if (texU >= 0.0 && texU <= 1.0 && texV >= 0.0 && texV <= 1.0) {
+                      color = texture2D(bottomMap, vec2(texU, texV)).rgb;
                     }
                   }
                   
@@ -893,7 +915,7 @@ document.getElementById('img-upload-mug-body')?.addEventListener('change', (e) =
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
-      openCropModal(img, 3, 'mug-body');
+      openCropModal(img, 3.5, 'mug-body');
     };
     img.src = ev.target.result;
   };
