@@ -457,16 +457,14 @@ function bakeCanvas(img, mode, transform, aspectRatio = 1, flipVertical = false)
     const dh = ih * s;
     ctx.drawImage(img, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh);
   } else {
-    // crop / cover
+    // crop / cover — free positioning (image can move beyond frame edges)
     const baseScale = Math.max(c.width / iw, c.height / ih);
     const s = baseScale * (transform.scale || 1);
     const dw = iw * s;
     const dh = ih * s;
-    // offset 範圍：可拖到圖左/右/上/下邊緣對齊框邊
-    const maxOffX = Math.max(0, (dw - c.width) / 2);
-    const maxOffY = Math.max(0, (dh - c.height) / 2);
-    const offX = (transform.offsetX || 0) * maxOffX;
-    const offY = (transform.offsetY || 0) * maxOffY;
+    // offsetX/Y are in pixel units relative to canvas center
+    const offX = transform.offsetX || 0;
+    const offY = transform.offsetY || 0;
     ctx.drawImage(img, (c.width - dw) / 2 + offX, (c.height - dh) / 2 + offY, dw, dh);
   }
   return c;
@@ -540,18 +538,22 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
     }
   }
 
-  // 拖曳
+  // 拖曳 — free move, pixel-based, no clamping
   preview.onmousedown = (e) => {
     dragging = true;
     dragStart = { x: e.offsetX, y: e.offsetY, ox: t.offsetX, oy: t.offsetY };
   };
   preview.onmousemove = (e) => {
     if (!dragging) return;
-    const W = preview.width;
-    const dx = (e.offsetX - dragStart.x) / (W / 2);
-    const dy = (e.offsetY - dragStart.y) / (W / 2);
-    t.offsetX = Math.max(-1, Math.min(1, dragStart.ox + dx));
-    t.offsetY = Math.max(-1, Math.min(1, dragStart.oy + dy));
+    // Scale drag distance from preview canvas size to bake canvas size (1024-based)
+    const canvasW = aspectRatio === 3.5 ? Math.round(1024 * 3.5) : 1024;
+    const canvasH = 1024;
+    const scaleX = canvasW / preview.width;
+    const scaleY = canvasH / preview.height;
+    const dx = (e.offsetX - dragStart.x) * scaleX;
+    const dy = (e.offsetY - dragStart.y) * scaleY;
+    t.offsetX = dragStart.ox + dx;
+    t.offsetY = dragStart.oy + dy;
     renderPreview();
   };
   window.addEventListener('mouseup', () => { dragging = false; });
@@ -756,7 +758,8 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
       scene.add(mugModel);
       
       // New model is larger than old one, scale 0.45
-      mugModel.scale.set(0.45, 0.45, 0.45);
+      mugModel.scale.set(0.225, 0.225, 0.225);
+      mugModel.position.set(0, -0.3, 0);
       
       let bodyLoaded = false;
       
@@ -828,23 +831,29 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
                   // --- Body texture (outer surface, V < 0.5) ---
                   if (hasBodyTexture) {
                     bool inVRange = vUv.y >= vMin && vUv.y <= vMax;
-                    bool inHandleU = vUv.x >= handleUMin && vUv.x <= handleUMax;
-                    bool isPrintable = inVRange && !inHandleU;
                     
-                    if (isPrintable && outwardDot > 0.1) {
-                      // Convert to continuous U space [0, 0.80] (skip handle gap)
-                      float continuousU;
-                      if (vUv.x < handleUMin) {
-                        continuousU = vUv.x;                    // [0, 0.40]
-                      } else {
-                        continuousU = vUv.x - 0.20;             // [0.60, 1.00] → [0.40, 0.80]
+                    if (inVRange && outwardDot > 0.1) {
+                      // Use atan2-based angle instead of vUv.x to avoid GPU interpolation
+                      // artifact at the UV seam (where U jumps from 0 to 1).
+                      // atan2 is computed per-fragment from world position → no interpolation.
+                      //
+                      // GLB node has 90° Y-rotation, so in WORLD space:
+                      //   Handle at +X, Front at +Z, Left at -X, Back at -Z
+                      // atan(-z, x) gives angle from +X (handle) going CCW:
+                      //   Handle(+X): 0, Front(+Z): +PI/2, Left(-X): PI, Back(-Z): -PI/2
+                      float rawAngle = atan(-vWorldPosition.z, vWorldPosition.x);
+                      float fromHandle = rawAngle; // handle = 0
+                      if (fromHandle < 0.0) fromHandle += 6.2831853;
+                      float shiftedU = fromHandle / 6.2831853; // [0,1], handle=0/1, front=0.25
+                      
+                      // Handle exclusion: 20% centered at 0/1
+                      // Printable zone: [0.10, 0.90]
+                      if (shiftedU > 0.10 && shiftedU < 0.90) {
+                        float remappedU = (shiftedU - 0.10) / 0.80;
+                        float remappedV = (vUv.y - vMin) / (vMax - vMin);
+                        vec4 texel = texture2D(bodyMap, vec2(remappedU, remappedV));
+                        color = mix(baseColor, texel.rgb, texel.a);
                       }
-                      // Offset so texture starts at U=0.098 instead of U=0
-                      // This shifts the image seam away from the front center
-                      float offsetU = mod(continuousU - 0.098, 0.80);
-                      float remappedU = offsetU / 0.80;
-                      float remappedV = (vUv.y - vMin) / (vMax - vMin);
-                      color = texture2D(bodyMap, vec2(remappedU, remappedV)).rgb;
                     }
                   }
                   
