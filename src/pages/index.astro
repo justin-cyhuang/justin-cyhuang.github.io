@@ -23,16 +23,17 @@ const categorized = await fetchRepos();
   </section>
 
   <section id="latest">
-    <h2>🍳 Latest Thing — ComfyUI SD 指南系列</h2>
+    <h2>🍳 Latest Thing — Pillow Studio 馬克杯功能</h2>
     <p>
-      剛新增 <strong>SD3.5 擴圖 (Outpainting) 指南</strong>，完整記錄 ComfyUI 節點配置、參數調整、
-      ControlNet 增強技巧，並附上 Hololive 時乃空角色的 prompt 範例（4 種場景變化）。
-      同時涵蓋 Large / Medium / Turbo 的解析度配置、VRAM 優化策略。
+      Pillow Studio 新增 <strong>馬克杯 (Mug) 3D 預覽</strong> — 從 Blender 5.0 匯出全新模型，
+      使用自製 <strong>atan2 UV shader</strong> 實作杯身環繞貼圖，支援<strong>雙圖片上傳</strong>（杯身造型 + 杯底圖案），
+      自由拖曳縮放調整位置。接縫 (seam) 刻意移到手把旁邊，正面視角完美無縫。
     </p>
     <p>
-      ComfyUI SD 指南現在有 <strong>7 個獨立頁面</strong>：工作流程、Prompting、圖像編輯、<strong>擴圖 (Outpainting)</strong>、
-      ControlNet、解析度設定、VRAM 優化。所有頁面都符合 WCAG 可訪問性標準（v1.2 樣式範本），
-      深色文字在淺色背景上確保清晰可讀。
+      技術亮點：透過<strong>法線方向過濾</strong>排除杯子內壁渲染、
+      <strong>世界座標圓形映射</strong>處理杯底貼圖、
+      <strong>可印刷區域 UV 過濾</strong>精確控制圖案範圍。
+      抱枕功能完全保留，透過下拉選單切換模型。
     </p>
     <p>
       底層仍是 <strong>Hermes on Pi 4</strong> — 8GB RAM，Discord 前端，
@@ -43,7 +44,7 @@ const categorized = await fetchRepos();
       想試？官網在
       <a href="https://hermes-agent.nousresearch.com/" target="_blank" rel="noopener">hermes-agent.nousresearch.com</a>。
     </p>
-    <p class="updated">最後更新：2026-06-07 11:40 CST</p>
+    <p class="updated">最後更新：2026-06-09 CST</p>
   </section>
 
   <section id="workflows">
@@ -110,8 +111,14 @@ const categorized = await fetchRepos();
   <section id="featured-project">
     <h2>🛋️ Pillow Studio — 3D Interactive Demo</h2>
     <p>
-      在瀏覽器裡操作一顆從 Blender export 出來的真實抱枕 mesh（23,522 頂點）。
-      使用 Three.js，純前端渲染，在 Pi 4 上建模匯出，桌機和行動裝置都能流暢執行。
+      在瀏覽器裡操作從 Blender export 出來的真實 mesh — 
+      <strong>抱枕</strong>（23,522 頂點）和<strong>馬克杯</strong>（59,000+ 面），
+      上傳自己的圖片即時預覽印刷效果。使用 Three.js + 自製 shader，純前端渲染，
+      桌機和行動裝置都能流暢執行。
+    </p>
+    <p>
+      支援三種布料材質（棉/麻/絲絨）、列印面積縮放、四種背景模式，
+      馬克杯還有杯身 + 杯底獨立圖案上傳與裁切功能。
     </p>
     <p>
       <a href="/pillow-studio/" style="font-weight: 600; font-size: 1.05rem;">→ 打開 Pillow Studio 互動展示</a>
