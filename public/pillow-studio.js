@@ -578,7 +578,20 @@ function openCropModal(img, aspectRatio = 1, targetSlot = 'pillow') {
       applyMugTexture('body', bakedCanvas);
       hud.textContent = `馬克杯主造型已套用 · ${img.width}×${img.height}`;
     } else if (targetSlot === 'mug-bottom') {
-      applyMugTexture('bottom', bakedCanvas);
+      // Apply circular alpha mask — slightly inset (92%) so edge pixels are transparent.
+      // This ensures fragments on the curved transition (clamped to texture edge) get alpha=0.
+      const maskedCanvas = document.createElement('canvas');
+      maskedCanvas.width = bakedCanvas.width;
+      maskedCanvas.height = bakedCanvas.height;
+      const mctx = maskedCanvas.getContext('2d');
+      mctx.drawImage(bakedCanvas, 0, 0);
+      mctx.globalCompositeOperation = 'destination-in';
+      mctx.beginPath();
+      const maskRadius = maskedCanvas.width / 2 * 0.92;
+      mctx.arc(maskedCanvas.width / 2, maskedCanvas.height / 2, maskRadius, 0, Math.PI * 2);
+      mctx.fill();
+      mctx.globalCompositeOperation = 'source-over';
+      applyMugTexture('bottom', maskedCanvas);
       hud.textContent = `馬克杯杯底已套用 · ${img.width}×${img.height}`;
     }
     
@@ -857,20 +870,22 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
                     }
                   }
                   
-                  // --- Bottom texture (V > 0.5) ---
-                  if (hasBottomTexture && vUv.y > 0.50) {
-                    // Remap V from [0.50, 0.99] → [0, 1]
-                    float bv = (vUv.y - 0.50) / 0.49;
-                    // Polar mapping: remap U,V to circular coordinates
-                    float bu = vUv.x;
-                    // Convert from linear UV to polar for circular bottom
-                    float angle = bu * 6.28318;  // U → angle [0, 2π]
-                    float radius = bv;            // V → radius [0, 1]
-                    // Convert polar to cartesian for texture lookup
-                    float texU = 0.5 + radius * cos(angle) * 0.5;
-                    float texV = 0.5 + radius * sin(angle) * 0.5;
-                    if (texU >= 0.0 && texU <= 1.0 && texV >= 0.0 && texV <= 1.0) {
-                      color = texture2D(bottomMap, vec2(texU, texV)).rgb;
+                  // --- Bottom texture (circular UV island) ---
+                  if (hasBottomTexture) {
+                    // Coarse UV gate: skip fragments far from the bottom UV island
+                    float du = vUv.x - 0.75;
+                    float dv = vUv.y - 0.75;
+                    float uvRadius = sqrt(du * du + dv * dv);
+                    if (uvRadius < 0.30) {
+                      // World-space XZ for texture coords (perfect circle per-fragment)
+                      float diskRadius = 0.186;
+                      // Negate X to correct horizontal mirror (bottom viewed from below)
+                      float texU = -vWorldPosition.x / diskRadius * 0.5 + 0.5;
+                      float texV = vWorldPosition.z / diskRadius * 0.5 + 0.5;
+                      texU = clamp(texU, 0.0, 1.0);
+                      texV = clamp(texV, 0.0, 1.0);
+                      vec4 texel = texture2D(bottomMap, vec2(texU, texV));
+                      color = mix(color, texel.rgb, texel.a);
                     }
                   }
                   
