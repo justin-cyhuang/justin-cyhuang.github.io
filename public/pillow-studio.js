@@ -876,7 +876,7 @@ document.getElementById('model-select')?.addEventListener('change', (e) => {
                     float du = vUv.x - 0.75;
                     float dv = vUv.y - 0.75;
                     float uvRadius = sqrt(du * du + dv * dv);
-                    if (uvRadius < 0.30) {
+                    if (uvRadius < 0.30 && vWorldNormal.y < -0.3) {
                       // World-space XZ for texture coords (perfect circle per-fragment)
                       float diskRadius = 0.186;
                       // Negate X to correct horizontal mirror (bottom viewed from below)
