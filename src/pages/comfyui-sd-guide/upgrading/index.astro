@@ -1,0 +1,591 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <article class="guide">
+    <header class="guide-header">
+      <h1>🔄 ComfyUI 升級指南</h1>
+      <p class="subtitle">
+        Portable 版本更新流程、版本選擇與配置遷移
+      </p>
+      <p class="meta">
+        <span class="version">當前穩定版：v0.26.0</span> · 
+        <span class="updated">最後更新：2026-06-28</span>
+      </p>
+    </header>
+
+    <section id="version-check">
+      <h2>📊 檢查當前版本</h2>
+      <p>
+        在決定是否升級前，先確認你目前使用的版本：
+      </p>
+      
+      <div class="code-block">
+        <strong>方法 1：從啟動畫面查看</strong>
+        <pre><code>啟動 ComfyUI 後，終端機第一行會顯示：
+## ComfyUI-Manager: installing dependencies done.
+## [Manager] default cache updated
+Total VRAM 12287 MB, total RAM 32555 MB
+pytorch version: 2.4.0+cu121
+Set vram state to: NORMAL_VRAM
+Device: cuda:0 NVIDIA GeForce RTX 3060 : cudaMallocAsync
+VAE dtype: torch.bfloat16
+Using pytorch cross attention
+<strong>*** ComfyUI startup time: 2024-06-03 14:23:45 ***</strong></code></pre>
+      </div>
+
+      <div class="code-block">
+        <strong>方法 2：查看資料夾名稱</strong>
+        <pre><code>ComfyUI_windows_portable_nvidia_cu121_or_cpu_nightly_pytorch
+                                              ^^^^^^
+                          nightly = 最新每日建置
+                          v0.2.x = 穩定版本號</code></pre>
+      </div>
+    </section>
+
+    <section id="should-upgrade">
+      <h2>🤔 我應該升級嗎？</h2>
+      
+      <table>
+        <thead>
+          <tr>
+            <th>情境</th>
+            <th>建議</th>
+            <th>理由</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Workflow 已穩定運作</td>
+            <td>⏸️ 保持觀望</td>
+            <td>新版本通常需要 1-2 週穩定，避免踩坑</td>
+          </tr>
+          <tr>
+            <td>需要新模型支援（Qwen3-VL, Krea2）</td>
+            <td>✅ 立即升級</td>
+            <td>新功能僅在最新版可用</td>
+          </tr>
+          <tr>
+            <td>遇到已知 bug 或記憶體問題</td>
+            <td>✅ 升級到修復版本</td>
+            <td>查看 Release Notes 確認 bug 已修復</td>
+          </tr>
+          <tr>
+            <td>落後 3 個以上大版本（如 0.23 → 0.26）</td>
+            <td>⚠️ 謹慎升級</td>
+            <td>跨版本升級風險較高，建議備份後測試</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <strong>💡 版本號規則</strong><br>
+        ComfyUI 使用 <code>v0.主版本.次版本</code> 格式：
+        <ul>
+          <li><strong>主版本變更（0.24 → 0.25）</strong>：可能有破壞性變更，需閱讀 Changelog</li>
+          <li><strong>次版本變更（0.25.0 → 0.25.1）</strong>：bug 修復，通常安全</li>
+          <li><strong>nightly 版本</strong>：每日自動建置，最新但較不穩定</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="version-history">
+      <h2>📜 近期版本更新摘要</h2>
+      
+      <h3>v0.26.0（2026-06-23）</h3>
+      <ul>
+        <li><strong>新模型</strong>：Qwen3-VL 文字生成、Boogu-Image、Krea2、LTX2 Context Windows</li>
+        <li><strong>Partner 模型</strong>：Kling V3-Turbo、Luma Rays 3.2、SeeDance 2.0 4K 支援</li>
+        <li><strong>系統改進</strong>：Job cancellation API、記憶體優化、telemetry CLI flag</li>
+      </ul>
+
+      <h3>v0.25.0（2026-06-16）</h3>
+      <ul>
+        <li><strong>新模型</strong>：SCAIL-2、Bernini-R、Depth Anything 3</li>
+        <li><strong>3D 功能</strong>：PreviewGaussianSplat、PreviewPointCloud 節點</li>
+        <li><strong>音頻整合</strong>：SaveAudioAdvanced 合併所有音頻節點</li>
+      </ul>
+
+      <h3>v0.24.0（2026-06-03）</h3>
+      <ul>
+        <li><strong>新模型</strong>：Ideogram V4</li>
+        <li><strong>修復</strong>：MultiGPU CFG Split 凍結問題、DualModelGuider 標記為實驗性</li>
+      </ul>
+
+      <div class="callout tip">
+        <strong>📖 完整更新記錄</strong><br>
+        查看 <a href="https://github.com/comfyanonymous/ComfyUI/releases" target="_blank">GitHub Releases 頁面</a> 
+        了解所有變更細節。
+      </div>
+    </section>
+
+    <section id="backup">
+      <h2>💾 升級前備份</h2>
+      
+      <div class="callout warning">
+        <strong>⚠️ 升級前必做</strong><br>
+        即使是次版本更新，也強烈建議先備份。Portable 版本的優勢就是可以完整複製整個資料夾。
+      </div>
+
+      <h3>Windows 備份步驟</h3>
+      <div class="code-block">
+        <strong>方法 1：檔案總管複製（簡單）</strong>
+        <pre><code>1. 找到 ComfyUI 資料夾（例如 D:\AI\ComfyUI_windows_portable）
+2. 右鍵 → 複製
+3. 在同一層資料夾貼上，系統會自動命名為：
+   ComfyUI_windows_portable - 複本
+4. 重新命名為有意義的名稱：
+   ComfyUI_0.24_stable_backup</code></pre>
+      </div>
+
+      <div class="code-block">
+        <strong>方法 2：PowerShell/CMD 指令（快速）</strong>
+        <pre><code>REM 進入 ComfyUI 上層目錄
+cd D:\AI
+
+REM 完整複製（包含子資料夾）
+xcopy /E /I /H "ComfyUI_windows_portable" "ComfyUI_0.24_backup"
+
+REM 驗證備份完成
+dir ComfyUI_0.24_backup</code></pre>
+      </div>
+
+      <h3>需要備份的重要檔案</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>路徑</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>所有模型檔案</td>
+            <td><code>ComfyUI/models/</code></td>
+            <td>最重要！通常佔數十 GB</td>
+          </tr>
+          <tr>
+            <td>Custom Nodes</td>
+            <td><code>ComfyUI/custom_nodes/</code></td>
+            <td>第三方節點，升級可能不相容</td>
+          </tr>
+          <tr>
+            <td>工作流程檔案</td>
+            <td><code>ComfyUI/output/*.json</code></td>
+            <td>你儲存的 workflow</td>
+          </tr>
+          <tr>
+            <td>生成圖片</td>
+            <td><code>ComfyUI/output/</code></td>
+            <td>歷史輸出，建議定期移出</td>
+          </tr>
+          <tr>
+            <td>設定檔</td>
+            <td><code>extra_model_paths.yaml</code></td>
+            <td>自訂模型路徑設定</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="upgrade-portable">
+      <h2>🔄 Portable 版升級流程</h2>
+      
+      <h3>選項 A：覆蓋式升級（保留設定）</h3>
+      <p>適合小版本更新（0.25.0 → 0.25.1）或你熟悉配置還原。</p>
+
+      <div class="do">
+        <strong>✅ 正確步驟</strong>
+        <ol>
+          <li><strong>完整備份</strong>當前資料夾（見上方備份章節）</li>
+          <li>從 <a href="https://github.com/comfyanonymous/ComfyUI/releases" target="_blank">GitHub Releases</a> 下載新版本 Portable zip</li>
+          <li>解壓縮到<strong>臨時資料夾</strong>（例如 <code>D:\Temp\ComfyUI_new</code>）</li>
+          <li>複製新版本的核心檔案<strong>覆蓋</strong>舊版本：
+            <pre><code>覆蓋這些資料夾/檔案：
+├── ComfyUI/
+│   ├── comfy/          ← 核心程式碼
+│   ├── web/            ← 前端介面
+│   ├── *.py            ← 啟動腳本
+│   └── requirements.txt
+
+<strong>⚠️ 不要覆蓋：</strong>
+├── ComfyUI/models/              ← 你的模型檔案
+├── ComfyUI/custom_nodes/        ← 第三方節點
+├── ComfyUI/output/              ← 輸出圖片
+└── extra_model_paths.yaml       ← 設定檔</code></pre>
+          </li>
+          <li>啟動新版本：雙擊 <code>run_nvidia_gpu.bat</code> 或 <code>run_cpu.bat</code></li>
+          <li>測試你的常用 workflow 是否正常運作</li>
+        </ol>
+      </div>
+
+      <div class="dont">
+        <strong>❌ 常見錯誤</strong>
+        <ul>
+          <li><strong>直接解壓縮覆蓋整個資料夾</strong> → 會刪除你的模型和設定</li>
+          <li><strong>只複製 <code>comfy/</code> 資料夾</strong> → 缺少前端更新，可能介面異常</li>
+          <li><strong>沒有備份就升級</strong> → 出問題時無法回退</li>
+          <li><strong>升級後不測試就刪除備份</strong> → 發現問題時已來不及</li>
+        </ul>
+      </div>
+
+      <h3>選項 B：全新安裝 + 遷移模型（推薦）</h3>
+      <p>適合大版本更新（0.24 → 0.26）或想徹底清理設定。</p>
+
+      <div class="do">
+        <strong>✅ 正確步驟</strong>
+        <ol>
+          <li>下載新版本 Portable zip，解壓縮到<strong>新資料夾</strong>：
+            <pre><code>D:\AI\
+├── ComfyUI_0.24_stable_backup    ← 舊版本（備份）
+└── ComfyUI_0.26_new              ← 新版本（獨立）</code></pre>
+          </li>
+          <li>
+            <strong>遷移模型檔案</strong>（選擇以下一種方式）：
+            <div class="code-block">
+              <strong>方法 1：複製模型檔案（簡單但佔空間）</strong>
+              <pre><code>xcopy /E /I "ComfyUI_0.24_backup\ComfyUI\models\*" "ComfyUI_0.26_new\ComfyUI\models\"</code></pre>
+            </div>
+            <div class="code-block">
+              <strong>方法 2：符號連結（進階，節省空間）</strong>
+              <pre><code>REM 以系統管理員身分執行 PowerShell
+cd D:\AI\ComfyUI_0.26_new\ComfyUI
+
+REM 刪除新版本的空 models 資料夾
+rmdir models
+
+REM 建立符號連結指向舊版本的 models
+mklink /D models "D:\AI\ComfyUI_0.24_backup\ComfyUI\models"</code></pre>
+            </div>
+            <div class="code-block">
+              <strong>方法 3：extra_model_paths.yaml（最彈性）</strong>
+              <pre><code># 在新版本建立 extra_model_paths.yaml
+# 路徑：ComfyUI_0.26_new\ComfyUI\extra_model_paths.yaml
+
+comfyui:
+    base_path: D:\AI\ComfyUI_0.24_backup\ComfyUI\
+    checkpoints: models/checkpoints
+    clip: models/clip
+    vae: models/vae
+    loras: models/loras</code></pre>
+            </div>
+          </li>
+          <li>如果有使用 Custom Nodes，選擇性複製（但要注意相容性）</li>
+          <li>啟動新版本並測試</li>
+          <li>確認穩定後，可刪除舊備份（或保留作為回退方案）</li>
+        </ol>
+      </div>
+
+      <div class="callout tip">
+        <strong>💡 推薦：雙版本並存</strong><br>
+        硬碟空間充足的話，保留 2-3 個版本並存是最安全的做法：
+        <ul>
+          <li><code>ComfyUI_stable</code> — 生產環境，穩定版本</li>
+          <li><code>ComfyUI_latest</code> — 測試環境，最新版本</li>
+          <li><code>ComfyUI_backup</code> — 上一個穩定版本，應急用</li>
+        </ul>
+        模型資料夾用 <code>extra_model_paths.yaml</code> 共享，不會重複佔空間。
+      </div>
+    </section>
+
+    <section id="custom-nodes">
+      <h2>🧩 Custom Nodes 相容性</h2>
+      
+      <p>
+        第三方節點（ComfyUI-Manager、rgthree、WAS Node Suite 等）
+        可能與新版本不相容，導致啟動失敗或節點錯誤。
+      </p>
+
+      <h3>升級後測試流程</h3>
+      <div class="do">
+        <strong>✅ 安全測試步驟</strong>
+        <ol>
+          <li><strong>初次啟動不載入 Custom Nodes</strong>
+            <pre><code>編輯 run_nvidia_gpu.bat，加入 --disable-all-custom-nodes：
+python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disable-all-custom-nodes</code></pre>
+          </li>
+          <li>確認核心功能正常（載入模型、執行基礎 workflow）</li>
+          <li>移除 <code>--disable-all-custom-nodes</code>，正常啟動</li>
+          <li>觀察終端機輸出，記錄任何 <span class="error">ERROR</span> 或 <span class="warning">WARNING</span></li>
+          <li>逐一測試你常用的 Custom Nodes 功能</li>
+        </ol>
+      </div>
+
+      <h3>解決不相容問題</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>症狀</th>
+            <th>可能原因</th>
+            <th>解決方法</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>啟動時卡住不動</td>
+            <td>某個 Custom Node 初始化失敗</td>
+            <td>用 <code>--disable-all-custom-nodes</code> 啟動，逐個刪除可疑節點</td>
+          </tr>
+          <tr>
+            <td>節點顯示紅色錯誤</td>
+            <td>API 變更導致節點程式碼過時</td>
+            <td>到該節點的 GitHub 查看是否有更新版本</td>
+          </tr>
+          <tr>
+            <td>Manager 無法安裝節點</td>
+            <td>ComfyUI-Manager 本身需要更新</td>
+            <td>手動更新 Manager：<br><code>git pull</code> 在 <code>custom_nodes/ComfyUI-Manager/</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <strong>⚠️ 核心節點變更</strong><br>
+        v0.25 開始，部分節點被合併或重新分類（如 SaveAudioAdvanced）。
+        使用舊 workflow 時可能需要重新連接節點。建議在升級前匯出 workflow JSON 備份。
+      </div>
+    </section>
+
+    <section id="rollback">
+      <h2>⏮️ 回退到舊版本</h2>
+      
+      <p>如果升級後遇到無法解決的問題，可以隨時回退。</p>
+
+      <h3>Portable 版回退（最簡單）</h3>
+      <div class="code-block">
+        <pre><code>1. 關閉新版本的 ComfyUI
+2. 重新命名資料夾：
+   ComfyUI_0.26_new → ComfyUI_0.26_broken
+   ComfyUI_0.24_backup → ComfyUI_windows_portable
+3. 啟動舊版本確認功能正常
+4. 到 GitHub Issues 回報問題或等待修復版本</code></pre>
+      </div>
+
+      <div class="callout info">
+        <strong>💡 為什麼 Portable 版適合新手</strong><br>
+        相較於 Git clone 安裝方式，Portable 版的優勢是：
+        <ul>
+          <li>升級/回退只需複製/重新命名資料夾，不需要 Git 操作</li>
+          <li>可以同時保留多個版本，隨時切換</li>
+          <li>不會因為 Python 環境問題導致依賴衝突</li>
+        </ul>
+        唯一缺點是佔用較多硬碟空間，但現代硬碟容量通常足夠。
+      </div>
+    </section>
+
+    <section id="sd35-compatibility">
+      <h2>🎨 SD 3.5 配置相容性</h2>
+      
+      <p>
+        如果你的配置是本指南推薦的標準 SD 3.5 Large 設定，
+        從 v0.24 升級到 v0.26 <strong>不需要任何修改</strong>。
+      </p>
+
+      <h3>你的配置（標準設定）</h3>
+      <div class="code-block">
+        <pre><code>ComfyUI/models/
+├── checkpoints/
+│   └── sd3.5_large.safetensors        (~19GB)
+└── clip/
+    ├── t5xxl_fp16.safetensors         (~9.8GB)
+    ├── clip_l.safetensors             (~1.4GB)
+    └── clip_g.safetensors             (~0.7GB)</code></pre>
+      </div>
+
+      <h3>v0.24 → v0.26 變更影響</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>v0.24</th>
+            <th>v0.26</th>
+            <th>需要修改？</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>TripleCLIPLoader 節點</td>
+            <td>✅ 支援</td>
+            <td>✅ 支援</td>
+            <td>❌ 無需修改</td>
+          </tr>
+          <tr>
+            <td>模型檔案路徑</td>
+            <td><code>models/clip/</code></td>
+            <td><code>models/clip/</code></td>
+            <td>❌ 無需修改</td>
+          </tr>
+          <tr>
+            <td>Sampler 參數</td>
+            <td>euler / sgm_uniform</td>
+            <td>euler / sgm_uniform</td>
+            <td>❌ 無需修改</td>
+          </tr>
+          <tr>
+            <td>CFG Scale 建議值</td>
+            <td>3.5 - 5.0</td>
+            <td>3.5 - 5.0</td>
+            <td>❌ 無需修改</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>✅ 安心升級</strong><br>
+        SD 3.5 的核心節點和配置在近幾個版本都很穩定。主要更新集中在：
+        <ul>
+          <li>新模型支援（Qwen3-VL、Krea2 等，不影響 SD 3.5）</li>
+          <li>Partner Nodes（可選功能）</li>
+          <li>記憶體優化（對你有利）</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="troubleshooting">
+      <h2>🔧 常見問題排除</h2>
+      
+      <h3>問題 1：升級後無法啟動</h3>
+      <div class="code-block">
+        <strong>症狀</strong>
+        <pre><code>雙擊 run_nvidia_gpu.bat 後，終端機視窗一閃而過
+或卡在 "Loading..." 不動</code></pre>
+      </div>
+      <div class="do">
+        <strong>✅ 排查步驟</strong>
+        <ol>
+          <li>用記事本開啟 <code>run_nvidia_gpu.bat</code>，最後一行加上 <code>pause</code>：
+            <pre><code>python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build
+<strong>pause</strong></code></pre>
+            這樣終端機不會自動關閉，可以看到錯誤訊息
+          </li>
+          <li>檢查是否有 Custom Node 載入失敗（紅色 ERROR）</li>
+          <li>嘗試加入 <code>--disable-all-custom-nodes</code> 排除問題</li>
+          <li>如果仍失敗，回退到備份版本</li>
+        </ol>
+      </div>
+
+      <h3>問題 2：模型載入失敗</h3>
+      <div class="code-block">
+        <strong>症狀</strong>
+        <pre><code>Error: Failed to load checkpoint
+或 Checkpoint dropdown 是空的</code></pre>
+      </div>
+      <div class="do">
+        <strong>✅ 排查步驟</strong>
+        <ol>
+          <li>確認模型檔案確實存在於 <code>ComfyUI/models/checkpoints/</code></li>
+          <li>檢查 <code>extra_model_paths.yaml</code> 路徑是否正確（絕對路徑，反斜線需跳脫）</li>
+          <li>重新整理瀏覽器（Ctrl+F5）</li>
+          <li>檢查終端機是否有 VRAM 不足警告</li>
+        </ol>
+      </div>
+
+      <h3>問題 3：生成結果異常</h3>
+      <div class="code-block">
+        <strong>症狀</strong>
+        <pre><code>圖片全黑、全白、色塊異常、或與舊版本結果差異很大</code></pre>
+      </div>
+      <div class="do">
+        <strong>✅ 排查步驟</strong>
+        <ol>
+          <li>確認使用的 Sampler / Scheduler 仍然是 <code>euler</code> / <code>sgm_uniform</code></li>
+          <li>檢查 CFG Scale 是否在 3.5-5.0 範圍（SD 3.5 Large）</li>
+          <li>嘗試用相同 seed 對比新舊版本結果</li>
+          <li>如果只有特定 workflow 異常，可能是節點 API 變更，需要重新配置</li>
+        </ol>
+      </div>
+
+      <h3>問題 4：記憶體/VRAM 錯誤</h3>
+      <div class="code-block">
+        <strong>症狀</strong>
+        <pre><code>CUDA out of memory
+或生成到一半卡住</code></pre>
+      </div>
+      <div class="do">
+        <strong>✅ 排查步驟</strong>
+        <ol>
+          <li>新版本可能預設啟用了更積極的記憶體管理，檢查 <code>--lowvram</code> 或 <code>--normalvram</code> 參數</li>
+          <li>如果你的配置包含 FP8 Text Encoder，確認新版本支援</li>
+          <li>參考 <a href="/comfyui-sd-guide/optimization/">VRAM 優化指南</a> 調整設定</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="resources">
+      <h2>📚 相關資源</h2>
+      
+      <div class="nav-grid">
+        <a href="/comfyui-sd-guide/" class="nav-card">
+          <h3>🏠 ComfyUI SD 指南首頁</h3>
+          <p>回到主指南，查看完整使用教學</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/optimization/" class="nav-card">
+          <h3>💾 VRAM 優化</h3>
+          <p>升級後遇到記憶體問題？查看優化方案</p>
+        </a>
+
+        <a href="https://github.com/comfyanonymous/ComfyUI/releases" target="_blank" class="nav-card">
+          <h3>📦 GitHub Releases</h3>
+          <p>下載最新版本、查看完整 Changelog</p>
+        </a>
+
+        <a href="https://github.com/comfyanonymous/ComfyUI/issues" target="_blank" class="nav-card">
+          <h3>🐛 回報問題</h3>
+          <p>遇到 bug？到官方 Issues 回報或搜尋解決方案</p>
+        </a>
+      </div>
+    </section>
+
+    <footer class="guide-footer">
+      <p>
+        <strong>參考資料：</strong>
+        <a href="https://github.com/comfyanonymous/ComfyUI/releases" target="_blank">ComfyUI Releases</a> ·
+        <a href="https://github.com/comfyanonymous/ComfyUI/wiki" target="_blank">ComfyUI Wiki</a>
+      </p>
+      <p class="source">
+        本指南由 Hermes Agent 協助研究與整理 · 版本追蹤更新於 2026-06-28
+      </p>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  /* 引用標準樣式範本 */
+  @import '../../../styles/guide-template.css';
+
+  /* 頁面特定樣式 */
+  .error {
+    color: #dc2626;
+    font-weight: 600;
+  }
+
+  .warning {
+    color: #f59e0b;
+    font-weight: 600;
+  }
+
+  .code-block strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #1a1a1a;
+  }
+
+  .code-block + .code-block {
+    margin-top: 1rem;
+  }
+
+  /* 確保表格在小螢幕也可讀 */
+  @media (max-width: 768px) {
+    table {
+      font-size: 0.85rem;
+    }
+    
+    .code-block pre {
+      font-size: 0.75rem;
+      overflow-x: auto;
+    }
+  }
+</style>
