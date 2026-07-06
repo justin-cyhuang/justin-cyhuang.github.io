@@ -10,8 +10,8 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
         Portable 版本更新流程、版本選擇與配置遷移
       </p>
       <p class="meta">
-        <span class="version">當前穩定版：v0.26.0</span> · 
-        <span class="updated">最後更新：2026-06-28</span>
+        <span class="version">當前穩定版：v0.27.0</span> · 
+        <span class="updated">最後更新：2026-07-06</span>
       </p>
     </header>
 
@@ -93,6 +93,14 @@ Using pytorch cross attention
     <section id="version-history">
       <h2>📜 近期版本更新摘要</h2>
       
+      <h3>v0.27.0（2026-06-30）</h3>
+      <ul>
+        <li><strong>核心變更</strong>：新增 int8 量化模型支援（含 Turing 架構 GPU），LoRA 套用速度優化</li>
+        <li><strong>新模型</strong>：Krea 2 進階模型合併節點、Alibaba HappyHorse 1.1</li>
+        <li><strong>Partner 模型</strong>：Grok Image 1080p、SeeDance 2.0 4K/Mini、Google Nano Banana 2 Lite、Gemini Video Omni</li>
+        <li><strong>系統改進</strong>：新增 <code>--enable-asset-hashing</code> CLI flag（預設關閉）、修復 int8 相關記憶體洩漏</li>
+      </ul>
+
       <h3>v0.26.0（2026-06-23）</h3>
       <ul>
         <li><strong>新模型</strong>：Qwen3-VL 文字生成、Boogu-Image、Krea2、LTX2 Context Windows</li>
@@ -380,7 +388,7 @@ python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disabl
       
       <p>
         如果你的配置是本指南推薦的標準 SD 3.5 Large 設定，
-        從 v0.24 升級到 v0.26 <strong>不需要任何修改</strong>。
+        從 v0.24 升級到 v0.27 <strong>不需要任何修改</strong>。
       </p>
 
       <h3>你的配置（標準設定）</h3>
@@ -394,13 +402,13 @@ python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disabl
     └── clip_g.safetensors             (~0.7GB)</code></pre>
       </div>
 
-      <h3>v0.24 → v0.26 變更影響</h3>
+      <h3>v0.24 → v0.27 變更影響</h3>
       <table>
         <thead>
           <tr>
             <th>項目</th>
             <th>v0.24</th>
-            <th>v0.26</th>
+            <th>v0.27</th>
             <th>需要修改？</th>
           </tr>
         </thead>
@@ -429,6 +437,12 @@ python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disabl
             <td>3.5 - 5.0</td>
             <td>❌ 無需修改</td>
           </tr>
+          <tr>
+            <td>int8 量化模型（v0.27 新增）</td>
+            <td>❌ 不支援</td>
+            <td>✅ 支援（選用）</td>
+            <td>⚪ 選配，非必要</td>
+          </tr>
         </tbody>
       </table>
 
@@ -436,7 +450,7 @@ python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disabl
         <strong>✅ 安心升級</strong><br>
         SD 3.5 的核心節點和配置在近幾個版本都很穩定。主要更新集中在：
         <ul>
-          <li>新模型支援（Qwen3-VL、Krea2 等，不影響 SD 3.5）</li>
+          <li>新模型支援（Qwen3-VL、Krea2、int8 量化等，不影響 SD 3.5 fp16 工作流）</li>
           <li>Partner Nodes（可選功能）</li>
           <li>記憶體優化（對你有利）</li>
         </ul>
@@ -546,7 +560,7 @@ python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disabl
         <a href="https://github.com/comfyanonymous/ComfyUI/wiki" target="_blank">ComfyUI Wiki</a>
       </p>
       <p class="source">
-        本指南由 Hermes Agent 協助研究與整理 · 版本追蹤更新於 2026-06-28
+        本指南由 Hermes Agent 協助研究與整理 · 版本追蹤更新於 2026-07-06
       </p>
     </footer>
   </article>
