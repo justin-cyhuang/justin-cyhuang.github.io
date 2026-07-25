@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import SectionCard from '../components/SectionCard.astro';
 import RepoCard from '../components/RepoCard.astro';
 import SkillCounter from '../components/islands/SkillCounter.tsx';
+import LiveActivity from '../components/islands/LiveActivity.tsx';
 import { fetchRepos } from '../lib/github';
 
 const categorized = await fetchRepos();
@@ -18,21 +19,23 @@ const categorized = await fetchRepos();
     </p>
     <p>
       下面會放：(1) 我現在最常用的 daily workflow，(2) 我寫的 / 在玩的 repository，
-      (3) 一個小小的互動 demo，證明這站不是純靜態。
+      (3) 右邊這個即時 GitHub 動態卡片，證明這站不是純靜態。
     </p>
+    <LiveActivity client:visible />
   </section>
 
   <section id="latest">
-    <h2>🍳 Latest Thing — 台灣司法判例筆記上線</h2>
+    <h2>🍳 Latest Thing — ComfyUI 模型選擇/新模型/外掛頁面整合</h2>
     <p>
-      GitHub Pages 新增 <strong>台灣司法判例筆記</strong> — 整理最近讀過覺得有趣的判決，
-      依<strong>民事 / 刑事 / 行政</strong>分頁，子分類用<strong>請求權基礎、罪名或處分依據法條</strong>篩選。
-      每個案例把<strong>一審到最終審</strong>判決收在同一張卡片方便對照，並附上司法院裁判書查詢系統的<strong>全文直接連結</strong>。
-      首發收錄「大夜班店員燕麥奶拿鐵業務侵占案」（士林地院一審有罪 → 高等法院二審改判無罪定讞，
-      判決書罕見以旁論痛批雇主「以刑逼民」）。
+      <strong>ComfyUI SD 指南</strong>把「模型選擇」拆成獨立子系統：
+      主頁保留 <strong>SD 3.5 標準配置</strong>速查表，
+      新增 <strong>模型選擇指南</strong>（SD 3.5 vs. 2025-2026 新一代開源模型完整比較）、
+      <strong>新模型介紹</strong>（FLUX.2 [dev]、Qwen-Image、Z-Image 發布資訊 + 官方來源查證）、
+      <strong>新外掛介紹</strong>（Nunchaku 4-bit 量化引擎等近 3 個月活躍 custom node）三個獨立頁面，
+      避免單頁塞爆、方便各自更新版本資訊。
     </p>
     <p>
-      其他近期專案：<strong>ComfyUI 升級指南</strong>（Portable 版升級流程、版本選擇、備份回退），
+      其他近期專案：<strong>台灣司法判例筆記</strong>（民事/刑事/行政分頁，一審到最終審判決同卡對照），
       <strong>Pillow Studio</strong> 馬克杯 3D 預覽（Blender 5.0 + atan2 shader 環繞貼圖）、
       <strong>AI Governance 知識庫</strong>（619 檔 / 4.1 MB，涵蓋 TW/EU/US/CN/JP 等 19 份法規）。
     </p>
@@ -45,7 +48,7 @@ const categorized = await fetchRepos();
       想試？官網在
       <a href="https://hermes-agent.nousresearch.com/" target="_blank" rel="noopener">hermes-agent.nousresearch.com</a>。
     </p>
-    <p class="updated">最後更新：2026-07-06 CST</p>
+    <p class="updated">最後更新：2026-07-25 CST</p>
   </section>
 
   <section id="workflows">
