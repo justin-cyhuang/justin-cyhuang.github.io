@@ -10,8 +10,8 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
         Portable 版本更新流程、版本選擇與配置遷移
       </p>
       <p class="meta">
-        <span class="version">當前穩定版：v0.27.0</span> · 
-        <span class="updated">最後更新：2026-07-06</span>
+        <span class="version">當前穩定版：v0.28.0</span> · 
+        <span class="updated">最後更新：2026-07-25</span>
       </p>
     </header>
 
@@ -93,6 +93,14 @@ Using pytorch cross attention
     <section id="version-history">
       <h2>📜 近期版本更新摘要</h2>
       
+      <h3>v0.28.0（2026-07-15）</h3>
+      <ul>
+        <li><strong>核心變更</strong>：新增 int4 量化模型支援（PID 1.5 系列）、GQA (Grouped Query Attention) 支援擴展到所有 attention backend，<strong>移除 PyTorch 2.4 支援</strong>（需升級 PyTorch）</li>
+        <li><strong>新節點</strong>：文字疊加節點（Text Overlay, CORE-137）、Save 3D (Advanced) 節點家族</li>
+        <li><strong>安全性</strong>：修復 4 項安全漏洞（GHSA-779p-m5rp-r4h4），建議儘快升級</li>
+        <li><strong>Partner 模型</strong>：ByteDance Seedream 5 Pro、Seed Audio 1.0、sync.so sync-3；移除 StabilityAI 與 Ideogram V1/V2 partner nodes</li>
+      </ul>
+
       <h3>v0.27.0（2026-06-30）</h3>
       <ul>
         <li><strong>核心變更</strong>：新增 int8 量化模型支援（含 Turing 架構 GPU），LoRA 套用速度優化</li>
@@ -388,8 +396,15 @@ python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disabl
       
       <p>
         如果你的配置是本指南推薦的標準 SD 3.5 Large 設定，
-        從 v0.24 升級到 v0.27 <strong>不需要任何修改</strong>。
+        從 v0.24 升級到 v0.28 <strong>不需要任何修改</strong>。
       </p>
+
+      <div class="callout warning">
+        <strong>⚠️ v0.28 需注意：PyTorch 版本要求提高</strong><br>
+        v0.28.0 移除了 PyTorch 2.4 支援（<code>Support gqa on all attention backends, drop support for pytorch 2.4</code>）。
+        若你的 Portable 版內嵌 PyTorch 2.4，需先確認新版 Portable zip 是否已內含更新後的 PyTorch，
+        否則升級後啟動可能報錯。建議升級前先看 Release Notes 確認相依版本。
+      </div>
 
       <h3>你的配置（標準設定）</h3>
       <div class="code-block">
@@ -408,7 +423,7 @@ python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disabl
           <tr>
             <th>項目</th>
             <th>v0.24</th>
-            <th>v0.27</th>
+            <th>v0.28</th>
             <th>需要修改？</th>
           </tr>
         </thead>
@@ -438,9 +453,21 @@ python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disabl
             <td>❌ 無需修改</td>
           </tr>
           <tr>
+            <td>PyTorch 版本</td>
+            <td>2.4 相容</td>
+            <td>⚠️ 不再支援 2.4，需更新版</td>
+            <td>⚠️ 需確認 Portable 內嵌版本</td>
+          </tr>
+          <tr>
             <td>int8 量化模型（v0.27 新增）</td>
             <td>❌ 不支援</td>
             <td>✅ 支援（選用）</td>
+            <td>⚪ 選配，非必要</td>
+          </tr>
+          <tr>
+            <td>int4 量化模型（v0.28 新增）</td>
+            <td>❌ 不支援</td>
+            <td>✅ 支援（選用，PID 1.5 系列）</td>
             <td>⚪ 選配，非必要</td>
           </tr>
         </tbody>
