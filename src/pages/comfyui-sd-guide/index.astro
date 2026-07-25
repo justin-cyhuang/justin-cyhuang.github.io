@@ -37,42 +37,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     <section id="models">
       <h2>🗂️ 模型選擇</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>模型</th>
-            <th>參數量</th>
-            <th>適用場景</th>
-            <th>VRAM 需求</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>sd3.5_large.safetensors</code></td>
-            <td>8B</td>
-            <td>高品質創作、藝術風格、複雜構圖</td>
-            <td>~12GB (fp16)</td>
-          </tr>
-          <tr>
-            <td><code>sd3.5_large_turbo.safetensors</code></td>
-            <td>8B</td>
-            <td>快速迭代、概念測試（4 steps）</td>
-            <td>~12GB (fp16)</td>
-          </tr>
-          <tr>
-            <td><code>sd3.5_medium.safetensors</code></td>
-            <td>2.5B</td>
-            <td>日常生成、批次處理、VRAM 受限</td>
-            <td>~6GB (fp16)</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="callout tip">
-        <strong>💾 T5-XXL 編碼器優化</strong><br>
-        T5-XXL 本體佔 9.5GB VRAM。可用 <code>t5xxl_fp8_e4m3fn.safetensors</code> (4.7GB) 替代，
-        幾乎無品質損失。放在 <code>ComfyUI/models/text_encoders/</code>。
-        詳見 <a href="/comfyui-sd-guide/optimization/">VRAM 優化指南</a>。
+      <p>
+        本頁預設使用 SD 3.5 標準配置。若想了解 FLUX.2 / Qwen-Image 等 2025-2026 新一代
+        開源模型的完整比較與升級路徑，請見獨立整理頁面：
+      </p>
+      <div class="callout info">
+        <strong>📖 完整模型選擇指南（含新模型比較）</strong><br>
+        <a href="/comfyui-sd-guide/models/"><strong>→ 前往模型選擇指南</strong></a>
+        （SD 3.5 標準配置 + FLUX.2 / Qwen-Image / Z-Image 新選項比較）
       </div>
     </section>
 
@@ -109,6 +81,16 @@ Steps: 28-30 (Large) / 25-28 (Medium) / 4 (Turbo)</code></pre>
     <nav class="guide-nav">
       <h2>📚 深入主題</h2>
       <div class="nav-grid">
+        <a href="/comfyui-sd-guide/models/" class="nav-card">
+          <h3>🗂️ 模型選擇指南</h3>
+          <p>SD 3.5 標準配置 + FLUX.2/Qwen-Image 等新一代模型比較</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/plugins/" class="nav-card">
+          <h3>🧩 新外掛介紹</h3>
+          <p>Nunchaku 4-bit 量化、RES4LYF sampler 等近期熱門 custom nodes</p>
+        </a>
+
         <a href="/comfyui-sd-guide/resolutions/" class="nav-card">
           <h3>📐 解析度設定</h3>
           <p>Large/Medium/Turbo 支援的解析度、技術限制、VRAM 影響</p>

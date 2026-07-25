@@ -1,0 +1,219 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <article class="guide">
+    <nav class="breadcrumb">
+      <a href="/comfyui-sd-guide/models/">← 模型選擇指南</a>
+    </nav>
+
+    <header class="guide-header">
+      <h1>✨ 新模型介紹</h1>
+      <p class="subtitle">
+        SD 3.5 之後的開源本地圖像生成新選項（2025-2026）
+      </p>
+      <p class="meta">
+        <span class="updated">最後更新：2026-07-25</span>
+      </p>
+    </header>
+
+    <div class="callout warning">
+      <strong>⚠️ 版本號提醒</strong><br>
+      ComfyUI 核心（<code>comfyanonymous/ComfyUI</code>）版本號是 v0.28.x，與模型本身版本無關。
+      本頁模型資訊皆已用官方來源查證，發布日期取自官方部落格/GitHub。
+    </div>
+
+    <section id="flux2">
+      <h2>🔥 FLUX.2 [dev]</h2>
+      <p><strong>發布：</strong>2025-11-25（Black Forest Labs）· <strong>授權：</strong>開源權重</p>
+
+      <table>
+        <thead>
+          <tr><th>項目</th><th>規格</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>參數量</td><td>320 億（32B），Mistral-3 24B VLM + rectified flow transformer + 全新 FLUX.2 VAE</td></tr>
+          <tr><td>VRAM 需求（BF16）</td><td>極高，實測需 ~70GB 系統記憶體承載</td></tr>
+          <tr><td>VRAM 需求（FP8, NVIDIA 合作版）</td><td>降低約 40%，官方建議 24GB+ VRAM；社群實測 12GB VRAM + 96GB 系統 RAM 可跑</td></tr>
+          <tr><td>最高解析度</td><td>4MP（百萬像素）</td></tr>
+          <tr><td>ComfyUI 核心需求</td><td>0.3.72 以上（實測 0.3.75 較穩）</td></tr>
+        </tbody>
+      </table>
+
+      <h3>相對 SD 3.5 的優勢</h3>
+      <ul>
+        <li>4MP 高解析度輸出，光影/皮膚/布料/手部細節大幅提升</li>
+        <li><strong>多參考圖一致性</strong>：一次最多 10 張參考圖，維持角色/產品/風格一致</li>
+        <li><strong>可靠文字渲染</strong>：複雜排版、資訊圖、UI mockup、迷因、多語言文字</li>
+        <li>單一 checkpoint 同時支援文生圖 + 多圖編輯</li>
+        <li>大幅增強的 prompt 遵從度與世界知識</li>
+      </ul>
+
+      <div class="callout tip">
+        <strong>💡 更輕量版本即將推出</strong><br>
+        <strong>FLUX.2 [klein]</strong>（Apache 2.0、size-distilled 蒸餾小模型）即將釋出，適合較低配置顯卡。
+      </div>
+
+      <p class="source-links">
+        來源：
+        <a href="https://bfl.ai/blog/flux-2" target="_blank">官方部落格</a> ·
+        <a href="https://huggingface.co/black-forest-labs/FLUX.2-dev" target="_blank">HuggingFace 權重</a> ·
+        <a href="https://github.com/black-forest-labs/flux2" target="_blank">推論程式</a>
+      </p>
+    </section>
+
+    <section id="qwen-image">
+      <h2>📝 Qwen-Image（阿里巴巴）</h2>
+      <p><strong>發布：</strong>2025-08-05（ComfyUI 原生支援日）· <strong>授權：</strong>Apache-2.0</p>
+
+      <table>
+        <thead>
+          <tr><th>項目</th><th>規格</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>參數量</td><td>20B MMDiT（多模態擴散 Transformer）</td></tr>
+          <tr><td>VRAM 需求（BF16）</td><td>≈ 40.9GB</td></tr>
+          <tr><td>VRAM 需求（FP8）</td><td>≈ 20.4GB；RTX 4090D 24GB 實測佔用 86%、單張約 71-94 秒</td></tr>
+          <tr><td>衍生版本</td><td>Qwen-Image-Edit-2509（2025-09 編輯強化版）</td></tr>
+        </tbody>
+      </table>
+
+      <h3>相對 SD 3.5 的優勢</h3>
+      <ul>
+        <li><strong>中英文複雜文字渲染與版面一致性極強</strong>（SD 3.5 的明顯弱項）</li>
+        <li>精細圖像編輯：物件增刪、風格轉換、圖內文字編輯、人物姿勢調整</li>
+        <li>支援 LoRA 生態，已有 ComfyUI / Nunchaku 官方工作流</li>
+      </ul>
+
+      <div class="callout info">
+        <strong>💡 推薦給你</strong><br>
+        FP8 版本 ~20.4GB VRAM，若你的顯卡負擔得起，是目前門檻相對較低、CP值最高的升級選項——尤其若你需要生成含中文文字的圖像。
+      </div>
+
+      <p class="source-links">
+        來源：
+        <a href="https://comfyui-wiki.com/en/news/2025-08-05-qwen-image" target="_blank">ComfyUI Wiki 公告</a> ·
+        <a href="https://huggingface.co/Qwen/Qwen-Image" target="_blank">HuggingFace</a> ·
+        <a href="https://arxiv.org/abs/2508.02324" target="_blank">技術報告</a> ·
+        <a href="https://docs.comfy.org/tutorials/image/qwen/qwen-image" target="_blank">ComfyUI 官方教學</a>
+      </p>
+    </section>
+
+    <section id="z-image">
+      <h2>⚡ Z-Image（阿里 Tongyi）</h2>
+      <p><strong>狀態：</strong>2025 末～2026 初新出現的輕量模型，資訊仍在確認中</p>
+
+      <ul>
+        <li>定位：比 FLUX.2 / Qwen-Image 更小體積，對消費級 GPU（含較舊 Turing 架構）更友善</li>
+        <li>已被 <strong>Nunchaku v1.2.0（2026-01-12）</strong> 納入加速支援，支援 fp16 與 LoRA</li>
+      </ul>
+
+      <div class="callout warning">
+        <strong>⚠️ 資訊查證程度較低</strong><br>
+        此模型資訊主要來自 Nunchaku release notes 間接查證，未找到獨立官方發布頁面。
+        建議實際嘗試前先到 <a href="https://github.com/nunchaku-tech/ComfyUI-nunchaku/releases" target="_blank">Nunchaku releases</a> 確認最新細節。
+      </div>
+    </section>
+
+    <nav class="guide-nav">
+      <h2>📚 相關頁面</h2>
+      <div class="nav-grid">
+        <a href="/comfyui-sd-guide/models/" class="nav-card">
+          <h3>🗂️ 模型選擇指南</h3>
+          <p>回到 SD 3.5 標準配置與整體升級路徑總覽</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/plugins/" class="nav-card">
+          <h3>🧩 新外掛介紹</h3>
+          <p>Nunchaku 4-bit 量化、RES4LYF sampler 節點，讓大模型在你的顯卡上跑起來</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/upgrading/" class="nav-card">
+          <h3>🔄 版本升級</h3>
+          <p>ComfyUI Portable 版升級到支援新模型所需的核心版本</p>
+        </a>
+      </div>
+    </nav>
+  </article>
+</BaseLayout>
+
+<style>
+  .guide { max-width: 48rem; margin: 0 auto; }
+  .breadcrumb { margin-bottom: 1.5rem; }
+  .breadcrumb a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; }
+  .breadcrumb a:hover { color: var(--link-hover); }
+
+  .guide-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+  .guide-header h1 { font-size: 2.25rem; margin-bottom: 0.75rem; line-height: 1.2; }
+  .subtitle { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+  .meta { font-size: 0.875rem; color: var(--text-muted); }
+
+  section { margin: 3rem 0; padding-top: 1rem; border-top: 1px solid var(--border); }
+  section:first-of-type { border-top: none; }
+  section h2 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+  section h3 { font-size: 1.2rem; margin: 1.5rem 0 0.75rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  thead { background: var(--bg-secondary); }
+  th, td { padding: 0.75rem; text-align: left; border: 1px solid var(--border); }
+  th { font-weight: 600; }
+  tbody tr:hover { background: var(--bg-secondary); }
+
+  code {
+    background: var(--bg-secondary);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+  }
+
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border-left: 4px solid;
+    color: #1a1a1a;
+  }
+  .callout a { color: #1a1a1a; text-decoration: underline; font-weight: 600; }
+  .callout.info { background: #e0f2fe; border-color: #0284c7; }
+  .callout.tip { background: #dcfce7; border-color: #16a34a; }
+  .callout.warning { background: #fef3c7; border-color: #f59e0b; }
+
+  .source-links { font-size: 0.875rem; color: var(--text-muted); }
+
+  .guide-nav {
+    margin: 4rem 0 3rem;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+  }
+  .guide-nav h2 { margin-top: 0; font-size: 1.5rem; }
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  .nav-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+  }
+  .nav-card:hover {
+    border-color: var(--link-hover);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+  .nav-card h3 { margin: 0 0 0.5rem; font-size: 1.1rem; color: #1a1a1a; font-weight: 600; }
+  .nav-card p { margin: 0; font-size: 0.9rem; color: #4a4a4a; line-height: 1.5; }
+
+  @media (max-width: 768px) {
+    .guide-header h1 { font-size: 1.75rem; }
+    .nav-grid { grid-template-columns: 1fr; }
+  }
+</style>

@@ -1,0 +1,218 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <article class="guide">
+    <nav class="breadcrumb">
+      <a href="/comfyui-sd-guide/">← ComfyUI SD 指南</a>
+    </nav>
+
+    <header class="guide-header">
+      <h1>🧩 新外掛介紹（Custom Nodes）</h1>
+      <p class="subtitle">
+        近 3 個月內活躍更新、社群關注度高的 ComfyUI 外掛
+      </p>
+      <p class="meta">
+        <span class="updated">最後更新：2026-07-25</span>
+      </p>
+    </header>
+
+    <section id="nunchaku">
+      <h2>🔥 Nunchaku — 4-bit 量化推論引擎</h2>
+      <p>
+        目前最受關注的效能外掛。用 <strong>SVDQuant / NVFP4 4-bit 量化</strong>技術，
+        大幅降低 FLUX.2、Qwen-Image、Z-Image 等大型新模型的顯存需求並加速推論。
+      </p>
+
+      <table>
+        <thead>
+          <tr><th>項目</th><th>內容</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>GitHub Stars</td><td>⭐ 2.9k</td></tr>
+          <tr><td>近期版本</td><td>v1.2.1（2026-01-27）· v1.2.0（2026-01-12）· v1.1.0（2025-12-27）· v1.0.2（2025-11-02）</td></tr>
+          <tr><td>更新頻率</td><td>近 3 個月內每月至少一次版本釋出，非常活躍</td></tr>
+        </tbody>
+      </table>
+
+      <h3>近期新增功能</h3>
+      <ul>
+        <li>Z-Image 模型加速支援</li>
+        <li>Qwen-Image 與 Qwen-Image-Edit-2509 工作流支援</li>
+        <li>原生 LoRALoader 相容</li>
+        <li>持續修復與最新 ComfyUI 核心版本的相容性</li>
+      </ul>
+
+      <div class="callout tip">
+        <strong>💡 適合你的情境</strong><br>
+        如果想跑 FLUX.2 [dev]（32B）或 Qwen-Image（20B）但顯卡 VRAM 不夠，
+        Nunchaku 是目前最實際的解法——可讓這類大模型在較低 VRAM 上跑動。
+      </div>
+
+      <p class="source-links">
+        來源：
+        <a href="https://github.com/nunchaku-tech/ComfyUI-nunchaku/releases" target="_blank">ComfyUI-Nunchaku Releases</a> ·
+        <a href="https://github.com/nunchaku-tech/nunchaku" target="_blank">Nunchaku 核心 repo</a>
+      </p>
+    </section>
+
+    <section id="res4lyf">
+      <h2>⚙️ RES4LYF — 進階 Sampler 節點集</h2>
+      <p>
+        提供大量新式 sampler / 排程器（scheduler）節點，含 Qwen-Image 專用相容性調整。
+        近期被 Nunchaku 團隊整合測試，社群用於提升取樣品質與收斂速度。
+      </p>
+
+      <div class="callout info">
+        <strong>💡 定位</strong><br>
+        如果你已經在用預設的 <code>euler</code> / <code>sgm_uniform</code> 組合覺得穩定，
+        這是進一步微調畫質的進階選項，非必要但值得評估。
+      </div>
+
+      <p class="source-links">
+        來源：<a href="https://github.com/ClownsharkBatwing/RES4LYF" target="_blank">RES4LYF GitHub</a>
+        （於 Nunchaku PR #600 中被引用整合）
+      </p>
+    </section>
+
+    <section id="official-quant">
+      <h2>📦 官方內建：fp8_scaled 量化（非外掛，但值得知道）</h2>
+      <p>
+        ComfyUI 核心目前主推 <code>fp8_scaled</code>（scaled fp8）作為大模型的預設節能格式，
+        FLUX.2 官方與 NVIDIA 合作提供 FP8 scaled 參考實作，可直接在 RTX 顯卡上降低約 40% VRAM 需求，
+        不需額外安裝外掛。
+      </p>
+      <div class="callout warning">
+        <strong>⚠️ 與 Nunchaku 的差異</strong><br>
+        fp8_scaled 是核心內建、較保守的量化；Nunchaku 的 4-bit/NVFP4 更激進，
+        VRAM 節省更多但需額外安裝外掛且相容性需自行驗證。
+      </div>
+
+      <p class="source-links">
+        來源：<a href="https://blog.comfy.org/p/flux2-state-of-the-art-visual-intelligence" target="_blank">ComfyUI 官方部落格</a>
+      </p>
+    </section>
+
+    <nav class="guide-nav">
+      <h2>📚 相關頁面</h2>
+      <div class="nav-grid">
+        <a href="/comfyui-sd-guide/models/" class="nav-card">
+          <h3>🗂️ 模型選擇指南</h3>
+          <p>SD 3.5 標準配置 + 新一代模型升級路徑總覽</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/models/new-models/" class="nav-card">
+          <h3>✨ 新模型介紹</h3>
+          <p>FLUX.2、Qwen-Image、Z-Image 詳細規格</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/optimization/" class="nav-card">
+          <h3>💾 VRAM 優化</h3>
+          <p>SD 3.5 專用的 4 種顯存優化方案</p>
+        </a>
+
+        <a href="/comfyui-sd-guide/upgrading/" class="nav-card">
+          <h3>🔄 版本升級</h3>
+          <p>ComfyUI Portable 版升級流程與相容性檢查</p>
+        </a>
+      </div>
+    </nav>
+
+    <footer class="guide-footer">
+      <p class="source">
+        本頁由 Hermes Agent 透過網路搜尋工具查證整理，所有版本號與日期取自官方 GitHub/部落格頁面。
+      </p>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .guide { max-width: 48rem; margin: 0 auto; }
+  .breadcrumb { margin-bottom: 1.5rem; }
+  .breadcrumb a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; }
+  .breadcrumb a:hover { color: var(--link-hover); }
+
+  .guide-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+  .guide-header h1 { font-size: 2.25rem; margin-bottom: 0.75rem; line-height: 1.2; }
+  .subtitle { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+  .meta { font-size: 0.875rem; color: var(--text-muted); }
+
+  section { margin: 3rem 0; padding-top: 1rem; border-top: 1px solid var(--border); }
+  section:first-of-type { border-top: none; }
+  section h2 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+  section h3 { font-size: 1.2rem; margin: 1.5rem 0 0.75rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  thead { background: var(--bg-secondary); }
+  th, td { padding: 0.75rem; text-align: left; border: 1px solid var(--border); }
+  th { font-weight: 600; }
+  tbody tr:hover { background: var(--bg-secondary); }
+
+  code {
+    background: var(--bg-secondary);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+  }
+
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border-left: 4px solid;
+    color: #1a1a1a;
+  }
+  .callout a { color: #1a1a1a; text-decoration: underline; font-weight: 600; }
+  .callout.info { background: #e0f2fe; border-color: #0284c7; }
+  .callout.tip { background: #dcfce7; border-color: #16a34a; }
+  .callout.warning { background: #fef3c7; border-color: #f59e0b; }
+
+  .source-links { font-size: 0.875rem; color: var(--text-muted); }
+
+  .guide-nav {
+    margin: 4rem 0 3rem;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+  }
+  .guide-nav h2 { margin-top: 0; font-size: 1.5rem; }
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  .nav-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+  }
+  .nav-card:hover {
+    border-color: var(--link-hover);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+  .nav-card h3 { margin: 0 0 0.5rem; font-size: 1.1rem; color: #1a1a1a; font-weight: 600; }
+  .nav-card p { margin: 0; font-size: 0.9rem; color: #4a4a4a; line-height: 1.5; }
+
+  .guide-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .guide-footer p { margin: 0.5rem 0; }
+  .source { font-style: italic; }
+
+  @media (max-width: 768px) {
+    .guide-header h1 { font-size: 1.75rem; }
+    .nav-grid { grid-template-columns: 1fr; }
+  }
+</style>
