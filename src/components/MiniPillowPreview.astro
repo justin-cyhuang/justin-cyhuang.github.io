@@ -1,0 +1,164 @@
+---
+// Mini 3D 預覽 island：首頁嵌入，讀 public/pillow.glb，自動旋轉，純展示不含互動控制面板
+// 完整功能請連到 /pillow-studio/
+---
+<div class="mini-preview">
+  <canvas id="mini-pillow-canvas"></canvas>
+  <div class="mini-hud" id="mini-hud">loading…</div>
+  <a href="/pillow-studio/" class="mini-cta">→ 打開完整版 Pillow Studio</a>
+</div>
+
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+    }
+  }
+</script>
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+  const canvas = document.getElementById('mini-pillow-canvas');
+  const hud = document.getElementById('mini-hud');
+  if (!canvas) throw new Error('mini-pillow-canvas not found');
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+  const scene = new THREE.Scene();
+  scene.background = null;
+
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+  camera.position.set(0, 0, 2.6);
+  camera.lookAt(0, 0, 0);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const key = new THREE.DirectionalLight(0xfff2e1, 1.4);
+  key.position.set(2.5, 3.0, 3.5);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xcfd8ff, 0.4);
+  fill.position.set(-2.0, 0.8, 2.0);
+  scene.add(fill);
+
+  let mesh = null;
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+
+  // 只在滑進 viewport 才啟動渲染（省 Pi 4 資源，也符合純展示 island 精神）
+  let running = false;
+  let rafId = null;
+
+  function animate() {
+    if (!running) return;
+    if (mesh) mesh.rotation.y += 0.006;
+    renderer.render(scene, camera);
+    rafId = requestAnimationFrame(animate);
+  }
+
+  const loader = new GLTFLoader();
+  loader.load(
+    '/pillow.glb',
+    (gltf) => {
+      mesh = gltf.scene;
+      mesh.traverse((obj) => {
+        if (obj.isMesh) {
+          obj.material = new THREE.MeshStandardMaterial({
+            color: 0xe8dccb,
+            roughness: 0.85,
+            metalness: 0.02,
+          });
+        }
+      });
+
+      // Blender export 的原點通常不在世界原點，先量 bounding box 算縮放，
+      // 套用縮放後「再」量一次 box 取得置中位移 — 順序不能反，否則 position 和 scale
+      // 疊加會讓 mesh 飄到鏡頭外（模型座標本身極大，如高度落在 y=3.4~4.1）。
+      let box = new THREE.Box3().setFromObject(mesh);
+      let size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = 1.4 / maxDim; // 統一縮放到約 1.4 個單位大小，配合鏡頭距離
+      mesh.scale.setScalar(scale);
+
+      box = new THREE.Box3().setFromObject(mesh); // 縮放後重新量測
+      const center = box.getCenter(new THREE.Vector3());
+      mesh.position.sub(center); // 移到世界原點
+
+      scene.add(mesh);
+      hud.style.display = 'none';
+      resize();
+      running = true;
+      animate();
+    },
+    undefined,
+    (err) => {
+      hud.textContent = '模型載入失敗';
+      console.warn('[mini pillow preview]', err);
+    },
+  );
+
+  window.addEventListener('resize', resize);
+
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      running = e.isIntersecting && !!mesh;
+      if (running) animate();
+    }
+  });
+  io.observe(canvas);
+</script>
+
+<style>
+  .mini-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    max-height: 380px;
+    background: linear-gradient(135deg, #efefe9 0%, #f5f5f0 60%, #ddd7c8 100%);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin: 1rem 0;
+  }
+  #mini-pillow-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .mini-hud {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b6b73;
+    font-size: 0.9rem;
+    font-family: ui-monospace, monospace;
+    background: transparent;
+  }
+  .mini-cta {
+    position: absolute;
+    bottom: 12px;
+    right: 14px;
+    background: rgba(0,0,0,0.72);
+    color: #fff !important;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    border-bottom: none !important;
+    text-decoration: none;
+  }
+  .mini-cta:hover {
+    background: #000;
+  }
+</style>
