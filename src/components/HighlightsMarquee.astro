@@ -1,0 +1,121 @@
+---
+/**
+ * 橫向無限捲動 marquee 卡片區塊。
+ *
+ * 資料來源：src/data/highlights.ts — 要增減/調整卡片內容只改那份資料，
+ * 這個元件本身不需要動。
+ *
+ * 實作原理：把卡片陣列複製 3 份頭尾相接，用 CSS @keyframes 對整條 track
+ * 做 translateX(0 → -33.333%) 無限循環；因為位移終點跟起點視覺相同，
+ * 銜接處看不出接縫。純 CSS 動畫，不需要 JS。
+ * hover 時暫停方便點擊／閱讀。
+ */
+import { highlights } from '../data/highlights';
+
+// 複製 3 份做無縫捲動
+const track = [...highlights, ...highlights, ...highlights];
+---
+<div class="marquee-wrapper" role="region" aria-label="精選項目捲軸">
+  <div class="marquee-track">
+    {track.map((item, i) => (
+      <a
+        class="highlight-card"
+        href={item.href}
+        target={item.href.startsWith('http') ? '_blank' : undefined}
+        rel={item.href.startsWith('http') ? 'noopener' : undefined}
+        aria-hidden={i >= highlights.length ? 'true' : undefined}
+        tabindex={i >= highlights.length ? -1 : undefined}
+      >
+        {item.image ? (
+          <img src={item.image} alt={item.title} loading="lazy" />
+        ) : (
+          <div class="icon-fallback" aria-hidden="true">{item.icon}</div>
+        )}
+        <div class="card-body">
+          <strong>{item.title}</strong>
+          <p>{item.description}</p>
+        </div>
+      </a>
+    ))}
+  </div>
+</div>
+
+<style>
+  .marquee-wrapper {
+    overflow: hidden;
+    margin: 1.25rem 0;
+    -webkit-mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
+  }
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    gap: 1rem;
+    animation: marquee-scroll 40s linear infinite;
+  }
+  .marquee-track:hover {
+    animation-play-state: paused;
+  }
+  .highlight-card {
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    background: var(--bg-elevated);
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .highlight-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .highlight-card img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+  }
+  .icon-fallback {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    background: var(--bg);
+  }
+  .card-body {
+    padding: 0.75rem 0.85rem;
+  }
+  .card-body strong {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.95rem;
+  }
+  .card-body p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-33.3333%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+      animation: none;
+      overflow-x: auto;
+    }
+  }
+</style>

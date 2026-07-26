@@ -5,6 +5,7 @@ import RepoCard from '../components/RepoCard.astro';
 import SkillCounter from '../components/islands/SkillCounter.tsx';
 import LiveActivity from '../components/islands/LiveActivity.tsx';
 import MiniPillowPreview from '../components/MiniPillowPreview.astro';
+import HighlightsMarquee from '../components/HighlightsMarquee.astro';
 import { fetchRepos } from '../lib/github';
 
 const categorized = await fetchRepos();
@@ -23,6 +24,11 @@ const categorized = await fetchRepos();
       (3) 右邊這個即時 GitHub 動態卡片，證明這站不是純靜態。
     </p>
     <LiveActivity client:visible />
+  </section>
+
+  <section id="highlights">
+    <h2>✨ 執行中企劃</h2>
+    <HighlightsMarquee />
   </section>
 
   <section id="latest">
