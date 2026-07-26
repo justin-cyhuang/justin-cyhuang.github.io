@@ -47,7 +47,7 @@ export default function LiveActivity() {
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
 
   const load = () => {
-    fetch('https://api.github.com/users/justin-cyhuang/events/public?per_page=6', {
+    fetch('https://api.github.com/users/justin-cyhuang/events/public?per_page=1', {
       headers: { Accept: 'application/vnd.github+json' },
     })
       .then((r) => {
@@ -82,13 +82,11 @@ export default function LiveActivity() {
 
       {!error && events && events.length > 0 && (
         <ul className="feed">
-          {events.map((e) => (
-            <li key={e.id}>
-              <span className="repo">{e.repo.name.replace('justin-cyhuang/', '')}</span>
-              <span className="action">{describe(e)}</span>
-              <span className="time">{timeAgo(e.created_at)}</span>
-            </li>
-          ))}
+          <li key={events[0].id}>
+            <span className="repo">{events[0].repo.name.replace('justin-cyhuang/', '')}</span>
+            <span className="action">{describe(events[0])}</span>
+            <span className="time">{timeAgo(events[0].created_at)}</span>
+          </li>
         </ul>
       )}
 
