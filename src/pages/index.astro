@@ -5,7 +5,6 @@ import RepoCard from '../components/RepoCard.astro';
 import SkillCounter from '../components/islands/SkillCounter.tsx';
 import LiveActivity from '../components/islands/LiveActivity.tsx';
 import MiniPillowPreview from '../components/MiniPillowPreview.astro';
-import LatestNewsCard from '../components/LatestNewsCard.astro';
 import { fetchRepos } from '../lib/github';
 
 const categorized = await fetchRepos();
@@ -62,7 +61,6 @@ const categorized = await fetchRepos();
         產出 10 則 bilingual headline + 台中天氣，
         bot 直接 push 到 Discord、同時備份成 Markdown 進 Obsidian。
       </p>
-      <LatestNewsCard />
     </SectionCard>
 
     <SectionCard title="Pi 4 系統看門狗" icon="🩺">
