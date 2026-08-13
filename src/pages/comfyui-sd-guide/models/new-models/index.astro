@@ -161,6 +161,35 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
         確認 ComfyUI 官方 workflow 能否在你實際可用的硬體上順利運作，再考慮添購/租用設備。
       </div>
 
+      <h3>社群單卡實測（2026-08-04，ai-muninn.com）</h3>
+      <table>
+        <thead>
+          <tr><th>項目</th><th>數據</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>顯卡</td><td>單張 RTX 5090（32GB VRAM）</td></tr>
+          <tr><td>使用檔案組合</td><td>pruned + int8_convrot，共 4 個檔案，總計 <strong>31.7GB</strong>（卡在 32GB VRAM 邊緣）</td></tr>
+          <tr><td>模型選擇建議</td><td>選 <strong>FL2VA</strong>（非 Ref2VA）——FL2VA 支援 0-2 張參考圖，無圖時即為純文生影片；Ref2VA 是全參考版本（支援 9 圖/3影片/3音訊），檔案更大、一般用不到</td></tr>
+          <tr><td>實測輸出</td><td>864×480 解析度、10 秒含音訊影片，耗時 <strong>約 175 秒</strong></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <strong>🔥 已知崩潰風險：GPU 功耗上限問題（RTX 5090 實測案例）</strong><br>
+        <a href="https://github.com/Comfy-Org/ComfyUI/issues/15480" target="_blank">GitHub Issue #15480</a>
+        回報：在 RTX 5090 上跑 MiniMax H3 文生影片時，若顯卡供電超過 80% 功耗上限，
+        <strong>顯示卡驅動會直接崩潰，並拖垮整個 ComfyUI 程序</strong>。
+        建議實測前先手動調低顯卡功耗上限（如用 <code>nvidia-smi -pl</code> 或原廠工具限制在 80% 以下）做為預防措施，
+        並隨時留意官方 GitHub Issues 的後續修復進度。
+      </div>
+
+      <div class="callout info">
+        <strong>📌 小結：能跑，但屬於「卡在極限邊緣」等級</strong><br>
+        單張 RTX 5090（32GB）技術上可行，但爆顯存風險高、有實測崩潰案例、
+        單段 10 秒影片需 ~3 分鐘生成時間。一般消費級 24GB 卡（如 4090）大概率無法順利運作。
+        建議先評估風險承受度，或先用雲端 GPU 試跑確認可行性再投入。
+      </div>
+
       <h3>特色</h3>
       <ul>
         <li><strong>文字/圖像→影片+音訊一次生成</strong>：不需要額外配音/音效節點，模型原生輸出對嘴/環境音同步的音軌</li>
@@ -181,6 +210,8 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
         <a href="https://huggingface.co/MiniMaxAI/MiniMax-H3" target="_blank">HuggingFace 原始權重</a> ·
         <a href="https://huggingface.co/Comfy-Org/MiniMax-H3" target="_blank">Comfy-Org 單檔版本</a> ·
         <a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/video_minimax_h3_i2v.json" target="_blank">官方 I2V Workflow</a> ·
+        <a href="https://ai-muninn.com/en/blog/minimax-h3-nvfp4-rtx5090" target="_blank">RTX 5090 單卡實測</a> ·
+        <a href="https://github.com/Comfy-Org/ComfyUI/issues/15480" target="_blank">崩潰問題 Issue #15480</a> ·
         <a href="https://www.reuters.com/world/china/chinas-minimax-releases-h3-video-model-2026-07-31/" target="_blank">Reuters 報導</a>
       </p>
     </section>
