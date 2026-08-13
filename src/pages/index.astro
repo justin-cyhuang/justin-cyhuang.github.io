@@ -32,14 +32,16 @@ const categorized = await fetchRepos();
   </section>
 
   <section id="latest">
-    <h2>🍳 Latest Thing — ComfyUI 模型選擇/新模型/外掛頁面整合</h2>
+    <h2>🍳 Latest Thing — MiniMax H3 多模態影音生成實測</h2>
     <p>
-      <strong>ComfyUI SD 指南</strong>把「模型選擇」拆成獨立子系統：
-      主頁保留 <strong>SD 3.5 標準配置</strong>速查表，
-      新增 <strong>模型選擇指南</strong>（SD 3.5 vs. 2025-2026 新一代開源模型完整比較）、
-      <strong>新模型介紹</strong>（FLUX.2 [dev]、Qwen-Image、Z-Image 發布資訊 + 官方來源查證）、
-      <strong>新外掛介紹</strong>（Nunchaku 4-bit 量化引擎等近 3 個月活躍 custom node）三個獨立頁面，
-      避免單頁塞爆、方便各自更新版本資訊。
+      <strong>ComfyUI 新模型頁面</strong>新增 <strong>MiniMax H3 專節</strong>：
+      主打 <strong>多模態影音生成</strong>（2K 畫質 + 原生音訊同步輸出），含官方 Day-0 支援與社群衍生 LoRA 資訊。
+      實測後補上關鍵警示——這不是消費級單卡友善的模型：最輕組合仍需 <strong>~42GB VRAM</strong>，官方參考部署直接用 4 卡。
+    </p>
+    <p>
+      <strong>RTX 5090 單卡實測數據</strong>：搭配 FL2VA 選擇，單次生成約 <strong>175 秒 / 31.7GB</strong> 佔用；
+      同時記錄了 <strong>GPU 功耗崩潰風險</strong>（對應 ComfyUI Issue #15480），提醒單卡玩家留意供電與降載。
+      ComfyUI 本體維持在 <strong>v0.32.0</strong>（2026-08-11，需 PyTorch 2.7）。
     </p>
     <p>
       其他近期專案：<strong>台灣司法判例筆記</strong>（民事/刑事/行政分頁，一審到最終審判決同卡對照），
@@ -55,7 +57,7 @@ const categorized = await fetchRepos();
       想試？官網在
       <a href="https://hermes-agent.nousresearch.com/" target="_blank" rel="noopener">hermes-agent.nousresearch.com</a>。
     </p>
-    <p class="updated">最後更新：2026-07-25 CST</p>
+    <p class="updated">最後更新：2026-08-13 CST</p>
   </section>
 
   <section id="workflows">
