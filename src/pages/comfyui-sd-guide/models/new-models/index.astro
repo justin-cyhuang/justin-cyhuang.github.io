@@ -125,12 +125,41 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
           <tr><th>項目</th><th>規格</th></tr>
         </thead>
         <tbody>
-          <tr><td>模型定位</td><td>Omni-modal：文字/圖像 → 影片 + <strong>原生音訊</strong>同步生成</td></tr>
-          <tr><td>影片解析度</td><td>最高 2K</td></tr>
-          <tr><td>ComfyUI 支援</td><td>官方 Day-0 支援（<code>Comfy-Org/MiniMax-H3</code> 單檔版本），v0.29~v0.32 多個版本持續優化（VAE 記憶體、noise mask 修復、int8_convrot 量化加速）</td></tr>
+          <tr><td>模型定位</td><td>Omni-modal：文字/圖像 → 影片 + <strong>原生音訊</strong>同步生成（32kHz 立體聲）</td></tr>
+          <tr><td>模型架構</td><td>H3-Omni-Transformer，33B 參數 dense 單流 Transformer（其中約 13B 為 AdaLN 分支，推論時可預先快取不必全載入）</td></tr>
+          <tr><td>影片解析度</td><td>預設短邊 768px；2K 需搭配官方 H3-Regenerate-2K（雲端 API）</td></tr>
+          <tr><td>影片長度 / 幀率</td><td>4-15 秒，24 FPS，支援 21:9 ~ 9:16 多種長寬比</td></tr>
+          <tr><td>官方參考部署</td><td>SGLang，官方範例用 <code>--num-gpus 4</code>（多卡伺服器級部署，非單卡消費級 GPU 設計）</td></tr>
+          <tr><td>ComfyUI 支援</td><td>官方 Day-0 支援（<code>Comfy-Org/MiniMax-H3</code> 單檔重新打包版本），v0.29~v0.32 多個版本持續優化（VAE 記憶體、noise mask 修復、int8_convrot 量化加速）</td></tr>
           <tr><td>加速/量化版本</td><td>社群已有 Turbo LoRA（<code>larryvrh/MiniMax-H3-Turbo-Lora</code>、<code>lightx2v/Minimax-h3-Turbo</code>）與 Kijai 版轉檔（<code>Kijai/MiniMax-H3_comfy</code>）</td></tr>
         </tbody>
       </table>
+
+      <h3>ComfyUI 單檔版本實測檔案大小（VRAM 需求參考）</h3>
+      <table>
+        <thead>
+          <tr><th>檔案</th><th>精度</th><th>大小</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>diffusion_model（主模型）</td><td>bf16（完整）</td><td>≈ 66.3 GB</td></tr>
+          <tr><td>diffusion_model（主模型，pruned）</td><td>fp8_scaled</td><td>≈ 21.0 GB</td></tr>
+          <tr><td>diffusion_model（主模型，pruned）</td><td>int8_convrot</td><td>≈ 21.0 GB（官方建議：若能用 PyTorch + cu130 優先選這個）</td></tr>
+          <tr><td>text_encoder（Qwen3-VL-32B）</td><td>bf16</td><td>≈ 51.5 GB</td></tr>
+          <tr><td>text_encoder（Qwen3-VL-32B）</td><td>int8_convrot</td><td>≈ 27.1 GB</td></tr>
+          <tr><td>text_encoder（Qwen3-VL-32B）</td><td>nvfp4_awq</td><td>≈ 15.7 GB（<strong>不需要 Blackwell 顯卡</strong>即可用）</td></tr>
+          <tr><td>video_vae</td><td>fp16</td><td>≈ 5.2 GB</td></tr>
+          <tr><td>audio_vae</td><td>fp32</td><td>≈ 0.6 GB</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <strong>⚠️ 硬體門檻評估：對單卡消費級 GPU 不友善</strong><br>
+        即使選最輕量組合（fp8/int8 diffusion model ≈21GB + nvfp4 text encoder ≈15.7GB + VAE ≈5.8GB），
+        光是模型檔案總大小就逼近 <strong>42GB</strong>，且官方參考部署範例用的是 <code>--num-gpus 4</code> 的 SGLang 伺服器級架構，
+        並非針對單張消費級顯卡設計。這與 SD 3.5（本指南標準配置，checkpoint ~19GB 可單卡跑）門檻差距很大。
+        建議先在雲端 GPU（如 RunPod/Vast.ai 24GB+ 顯卡，或多卡機器）試跑，
+        確認 ComfyUI 官方 workflow 能否在你實際可用的硬體上順利運作，再考慮添購/租用設備。
+      </div>
 
       <h3>特色</h3>
       <ul>
@@ -140,15 +169,10 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
       </ul>
 
       <div class="callout tip">
-        <strong>💡 值得先玩的理由</strong><br>
-        ComfyUI 官方部落格特別寫了 Day-0 支援專文（少見待遇），且 HN/Reddit 討論熱度高。
-        若你的 GPU 資源允許，這是目前最新穎、話題度最高的本地影音生成模型之一。
-      </div>
-
-      <div class="callout warning">
-        <strong>⚠️ 待補充</strong><br>
-        VRAM 需求、實際生成時長、與現有 SD 3.5 workflow 的整合方式尚未實測查證，
-        建議先到 <a href="https://blog.comfy.org/p/minimax-h3-day-0-support-in-comfyui" target="_blank">ComfyUI 官方 Day-0 專文</a> 確認實際部署步驟。
+        <strong>💡 話題度高，但先評估你的硬體</strong><br>
+        ComfyUI 官方部落格特別寫了 Day-0 支援專文（少見待遇），且 HN/Reddit 討論熱度高，
+        是目前開源本地模型中少數能做到「影片+音訊同源生成」的選項。
+        但如上方硬體門檻評估，這不是能在一般消費級單卡上輕鬆嘗鮮的模型——先確認可用資源再決定是否投入。
       </div>
 
       <p class="source-links">
@@ -156,6 +180,7 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
         <a href="https://blog.comfy.org/p/minimax-h3-day-0-support-in-comfyui" target="_blank">ComfyUI 官方部落格</a> ·
         <a href="https://huggingface.co/MiniMaxAI/MiniMax-H3" target="_blank">HuggingFace 原始權重</a> ·
         <a href="https://huggingface.co/Comfy-Org/MiniMax-H3" target="_blank">Comfy-Org 單檔版本</a> ·
+        <a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/video_minimax_h3_i2v.json" target="_blank">官方 I2V Workflow</a> ·
         <a href="https://www.reuters.com/world/china/chinas-minimax-releases-h3-video-model-2026-07-31/" target="_blank">Reuters 報導</a>
       </p>
     </section>
