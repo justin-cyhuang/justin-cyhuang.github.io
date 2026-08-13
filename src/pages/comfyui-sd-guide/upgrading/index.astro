@@ -10,8 +10,8 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
         Portable 版本更新流程、版本選擇與配置遷移
       </p>
       <p class="meta">
-        <span class="version">當前穩定版：v0.28.0</span> · 
-        <span class="updated">最後更新：2026-07-25</span>
+        <span class="version">當前穩定版：v0.32.0</span> · 
+        <span class="updated">最後更新：2026-08-13</span>
       </p>
     </header>
 
@@ -93,6 +93,37 @@ Using pytorch cross attention
     <section id="version-history">
       <h2>📜 近期版本更新摘要</h2>
       
+      <h3>v0.32.0（2026-08-11，最新版）</h3>
+      <ul>
+        <li><strong>核心變更</strong>：<strong>官方最低支援 PyTorch 版本提升為 2.7</strong>（不再是 v0.28 的 2.4）；實作 comfy kitchen attention</li>
+        <li><strong>新模型</strong>：Qwen-Image 3.0 Pro、LTX 2.5 支援、Grok-Imagine-Image-2.0</li>
+        <li><strong>優化/修復</strong>：MiniMax-H3 VAE 記憶體最佳化、修復 NestedTensor latent 導致的 VAEDecodeTiled 崩潰、修復低 VRAM upscale 模型問題</li>
+        <li><strong>API</strong>：Assets API 新增 tags_all/tags_any/tags_none 標籤篩選</li>
+      </ul>
+
+      <h3>v0.31.0（2026-08-08）</h3>
+      <ul>
+        <li><strong>新模型</strong>：Wan-Animate2 原生支援</li>
+        <li><strong>效能</strong>：LTX 與 Wan 模型加速、MiniMax-H3 int8_convrot VAE 支援</li>
+        <li><strong>修復</strong>：無 swap 分割區的 Linux 系統記憶體釘選（pinning）問題、MiniMax H3 noise mask 取樣錯誤</li>
+        <li><strong>Partner 模型</strong>：BFL Flux 3 影片模型、TopazAI Bloom 2 / Wonder 3.5；Kling 移除已停用舊模型與 Virtual Try-On API</li>
+      </ul>
+
+      <h3>v0.30.0（2026-08-03）</h3>
+      <ul>
+        <li><strong>核心變更</strong>：權重載入採用 MRU 策略 pin 到 process RAM、新增 DETAIL logging（預設關閉）、資料集資料夾存取限制（安全性）</li>
+        <li><strong>安全性</strong>：修復 SVG 預覽的 stored-XSS 強制下載漏洞</li>
+        <li><strong>系統改進</strong>：comfy-kitchen 支援 AMD、int8 convrot embedding lookup、PrunaVAED（LTX2.3 更快解碼器）</li>
+        <li><strong>Partner 模型</strong>：Ideogram P-Image、MiniMax H3</li>
+      </ul>
+
+      <h3>v0.29.0（2026-07-29）</h3>
+      <ul>
+        <li><strong>新模型</strong>：JoyImageEdit 原生模型支援、Gemma4 12B 支援、Anima lllite control models</li>
+        <li><strong>新功能</strong>：影片處理節點（Video Processing Node）、Uni3C Controlnet for Wan 原生支援</li>
+        <li><strong>Partner 模型</strong>：OpenAI GPT-5.6、Google Gemini 3.5 Flash、HeyGen（Avatar/Talking Photo/Video Translate/TTS 節點家族）</li>
+      </ul>
+
       <h3>v0.28.0（2026-07-15）</h3>
       <ul>
         <li><strong>核心變更</strong>：新增 int4 量化模型支援（PID 1.5 系列）、GQA (Grouped Query Attention) 支援擴展到所有 attention backend，<strong>移除 PyTorch 2.4 支援</strong>（需升級 PyTorch）</li>
@@ -400,9 +431,9 @@ python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --disabl
       </p>
 
       <div class="callout warning">
-        <strong>⚠️ v0.28 需注意：PyTorch 版本要求提高</strong><br>
-        v0.28.0 移除了 PyTorch 2.4 支援（<code>Support gqa on all attention backends, drop support for pytorch 2.4</code>）。
-        若你的 Portable 版內嵌 PyTorch 2.4，需先確認新版 Portable zip 是否已內含更新後的 PyTorch，
+        <strong>⚠️ v0.28→v0.32 需注意：PyTorch 版本要求持續提高</strong><br>
+        v0.28.0 移除了 PyTorch 2.4 支援，v0.32.0 進一步將官方最低支援版本提升到 <strong>PyTorch 2.7</strong>。
+        若你的 Portable 版內嵌舊版 PyTorch，需先確認新版 Portable zip 是否已內含 2.7+，
         否則升級後啟動可能報錯。建議升級前先看 Release Notes 確認相依版本。
       </div>
 
