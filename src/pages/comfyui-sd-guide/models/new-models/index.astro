@@ -14,13 +14,13 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
         SD 3.5 之後的開源本地圖像生成新選項（2025-2026）
       </p>
       <p class="meta">
-        <span class="updated">最後更新：2026-07-25</span>
+        <span class="updated">最後更新：2026-08-13</span>
       </p>
     </header>
 
     <div class="callout warning">
       <strong>⚠️ 版本號提醒</strong><br>
-      ComfyUI 核心（<code>comfyanonymous/ComfyUI</code>）版本號是 v0.28.x，與模型本身版本無關。
+      ComfyUI 核心（<code>comfyanonymous/ComfyUI</code>）版本號是 v0.32.x，與模型本身版本無關。
       本頁模型資訊皆已用官方來源查證，發布日期取自官方部落格/GitHub。
     </div>
 
@@ -114,6 +114,50 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
         此模型資訊主要來自 Nunchaku release notes 間接查證，未找到獨立官方發布頁面。
         建議實際嘗試前先到 <a href="https://github.com/nunchaku-tech/ComfyUI-nunchaku/releases" target="_blank">Nunchaku releases</a> 確認最新細節。
       </div>
+    </section>
+
+    <section id="minimax-h3">
+      <h2>🎬 MiniMax H3（多模態影音生成，值得玩玩）</h2>
+      <p><strong>發布：</strong>2026-07-31（MiniMax，中國）· <strong>授權：</strong>開源權重（Apache-2.0，部分衍生版）</p>
+
+      <table>
+        <thead>
+          <tr><th>項目</th><th>規格</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>模型定位</td><td>Omni-modal：文字/圖像 → 影片 + <strong>原生音訊</strong>同步生成</td></tr>
+          <tr><td>影片解析度</td><td>最高 2K</td></tr>
+          <tr><td>ComfyUI 支援</td><td>官方 Day-0 支援（<code>Comfy-Org/MiniMax-H3</code> 單檔版本），v0.29~v0.32 多個版本持續優化（VAE 記憶體、noise mask 修復、int8_convrot 量化加速）</td></tr>
+          <tr><td>加速/量化版本</td><td>社群已有 Turbo LoRA（<code>larryvrh/MiniMax-H3-Turbo-Lora</code>、<code>lightx2v/Minimax-h3-Turbo</code>）與 Kijai 版轉檔（<code>Kijai/MiniMax-H3_comfy</code>）</td></tr>
+        </tbody>
+      </table>
+
+      <h3>特色</h3>
+      <ul>
+        <li><strong>文字/圖像→影片+音訊一次生成</strong>：不需要額外配音/音效節點，模型原生輸出對嘴/環境音同步的音軌</li>
+        <li>屬於目前少數「影片+音訊同源生成」的開源權重模型，此前多數本地方案（Wan、LTX）僅輸出無聲影片</li>
+        <li>社群生態發展快：一週內已出現 Turbo 加速 LoRA、Realism LoRA、Prompt Rewriter LoRA 等衍生工具</li>
+      </ul>
+
+      <div class="callout tip">
+        <strong>💡 值得先玩的理由</strong><br>
+        ComfyUI 官方部落格特別寫了 Day-0 支援專文（少見待遇），且 HN/Reddit 討論熱度高。
+        若你的 GPU 資源允許，這是目前最新穎、話題度最高的本地影音生成模型之一。
+      </div>
+
+      <div class="callout warning">
+        <strong>⚠️ 待補充</strong><br>
+        VRAM 需求、實際生成時長、與現有 SD 3.5 workflow 的整合方式尚未實測查證，
+        建議先到 <a href="https://blog.comfy.org/p/minimax-h3-day-0-support-in-comfyui" target="_blank">ComfyUI 官方 Day-0 專文</a> 確認實際部署步驟。
+      </div>
+
+      <p class="source-links">
+        來源：
+        <a href="https://blog.comfy.org/p/minimax-h3-day-0-support-in-comfyui" target="_blank">ComfyUI 官方部落格</a> ·
+        <a href="https://huggingface.co/MiniMaxAI/MiniMax-H3" target="_blank">HuggingFace 原始權重</a> ·
+        <a href="https://huggingface.co/Comfy-Org/MiniMax-H3" target="_blank">Comfy-Org 單檔版本</a> ·
+        <a href="https://www.reuters.com/world/china/chinas-minimax-releases-h3-video-model-2026-07-31/" target="_blank">Reuters 報導</a>
+      </p>
     </section>
 
     <nav class="guide-nav">
